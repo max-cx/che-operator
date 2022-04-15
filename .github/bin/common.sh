@@ -80,7 +80,7 @@ getLatestStableVersions() {
 collectLogs() {
   mkdir -p ${ARTIFACTS_DIR}
 
-  set +e
+  set +ex
   if [[ $IS_KUBERNETES == 1 ]]; then
     # Collect logs only for k8s cluster since OpenShift CI already dump all resources
     collectClusterResources
@@ -203,8 +203,8 @@ deployEclipseCheOnWithOperator() {
       copyCheOperatorImageToMinikube
     fi
 
-    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/operator.yaml
-    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/operator.yaml
+    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' "${templates}"/che-operator/kubernetes/operator.yaml
+    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' "${templates}"/che-operator/kubernetes/operator.yaml
   fi
 
   if [[ ${platform} == "minikube" ]]; then

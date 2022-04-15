@@ -681,15 +681,17 @@ ADD_LICENSE = $(shell pwd)/bin/addlicense
 download-addlicense: ## Download addlicense tool
 	$(call go-get-tool,$(ADD_LICENSE),github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a)
 
+download-operator-sdk: SHELL := /bin/bash
 download-operator-sdk: ## Downloads operator sdk tool
 	OS=$(shell go env GOOS)
 	ARCH=$(shell go env GOARCH)
 	OPERATOR_SDK_VERSION=$$(yq -r '."operator-sdk"' $(PROJECT_DIR)/REQUIREMENTS)
 
-	echo "[INFO] Downloading operator-sdk version: $$OPERATOR_SDK_VERSION"
+	[[ -z "$(DEST)" ]] && dest="." || dest=$(DEST)
+	echo "[INFO] Downloading operator-sdk version $$OPERATOR_SDK_VERSION into $${dest}"
 
-	curl -SLo operator-sdk https://github.com/operator-framework/operator-sdk/releases/download/$${OPERATOR_SDK_VERSION}/operator-sdk_$${OS}_$${ARCH}
-	chmod +x operator-sdk
+	curl -SLo $${dest}/operator-sdk https://github.com/operator-framework/operator-sdk/releases/download/$${OPERATOR_SDK_VERSION}/operator-sdk_$${OS}_$${ARCH}
+	chmod +x $${dest}/operator-sdk
 
 check-requirements: SHELL := /bin/bash
 check-requirements: ## Check if all tools required versions are installed

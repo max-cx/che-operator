@@ -32,7 +32,7 @@ installOperatorSDK() {
     OPERATOR_SDK_TEMP_DIR="$(mktemp -q -d -t "OPERATOR_SDK_XXXXXX" 2>/dev/null || mktemp -q -d)"
 
     pushd "${ROOT_PROJECT_DIR}" || exit
-    make install-operator-sdk OP_SDK_DIR="${OPERATOR_SDK_TEMP_DIR}"
+    make download-operator-sdk DEST="${OPERATOR_SDK_TEMP_DIR}"
     export OPERATOR_SDK_BINARY="${OPERATOR_SDK_TEMP_DIR}/operator-sdk"
     popd || exit
   fi

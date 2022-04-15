@@ -49,6 +49,7 @@ else
   PLATFORM := kubernetes
 endif
 
+OPERATOR_SDK ?= operator-sdk
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -364,10 +365,10 @@ bundle: generate manifests download-kustomize ## Generate bundle manifests and m
 	NEXT_BUNDLE_CREATION_DATE=$$(yq -r ".metadata.annotations.createdAt" "$${CSV_PATH}")
 
 	# Build default clusterserviceversion file
-	operator-sdk generate kustomize manifests
+	$(OPERATOR_SDK) generate kustomize manifests
 
 	$(KUSTOMIZE) build config/manifests | \
-	operator-sdk generate bundle \
+	$(OPERATOR_SDK) generate bundle \
 	--quiet \
 	--overwrite \
 	--version $${NEXT_BUNDLE_VERSION} \
@@ -421,7 +422,7 @@ bundle: generate manifests download-kustomize ## Generate bundle manifests and m
 
 	$(MAKE) add-license $$(find $${BUNDLE_PATH} -name "*.yaml")
 
-	operator-sdk bundle validate $${BUNDLE_PATH}
+	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH}
 
 update: SHELL := /bin/bash
 update: check-requirements ## Update all resources
@@ -687,11 +688,11 @@ download-operator-sdk: ## Downloads operator sdk tool
 	ARCH=$(shell go env GOARCH)
 	OPERATOR_SDK_VERSION=$$(yq -r '."operator-sdk"' $(PROJECT_DIR)/REQUIREMENTS)
 
-	[[ -z "$(DEST)" ]] && dest="." || dest=$(DEST)
+	[[ -z "$(DEST)" ]] && dest=$(OPERATOR_SDK) || dest=$(DEST)/$(OPERATOR_SDK)
 	echo "[INFO] Downloading operator-sdk version $$OPERATOR_SDK_VERSION into $${dest}"
 
-	curl -SLo $${dest}/operator-sdk https://github.com/operator-framework/operator-sdk/releases/download/$${OPERATOR_SDK_VERSION}/operator-sdk_$${OS}_$${ARCH}
-	chmod +x $${dest}/operator-sdk
+	curl -SLo $${dest} https://github.com/operator-framework/operator-sdk/releases/download/$${OPERATOR_SDK_VERSION}/operator-sdk_$${OS}_$${ARCH}
+	chmod +x $${dest}
 
 check-requirements: SHELL := /bin/bash
 check-requirements: ## Check if all tools required versions are installed

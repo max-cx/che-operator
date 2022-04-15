@@ -20,7 +20,7 @@ if [ -z "${OPERATOR_REPO}" ]; then
   OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")")")
 fi
 
-source "${OPERATOR_REPO}"/.github/bin/common.sh
+source "${OPERATOR_REPO}/.github/bin/common.sh"
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT

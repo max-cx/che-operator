@@ -17,8 +17,10 @@ import (
 	"reflect"
 	"sort"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/pkg/util"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/test"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	routev1 "github.com/openshift/api/route/v1"
@@ -38,7 +40,7 @@ var routeDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "Host", "WildcardPolicy"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
 		return reflect.DeepEqual(x.Labels, y.Labels) &&
-			x.Annotations[CheEclipseOrgManagedAnnotationsDigest] == y.Annotations[CheEclipseOrgManagedAnnotationsDigest]
+			x.Annotations[constants.CheEclipseOrgManagedAnnotationsDigest] == y.Annotations[constants.CheEclipseOrgManagedAnnotationsDigest]
 	}),
 }
 var routeWithHostDiffOpts = cmp.Options{
@@ -46,26 +48,24 @@ var routeWithHostDiffOpts = cmp.Options{
 	cmpopts.IgnoreFields(routev1.RouteSpec{}, "WildcardPolicy"),
 	cmp.Comparer(func(x, y metav1.ObjectMeta) bool {
 		return reflect.DeepEqual(x.Labels, y.Labels) &&
-			x.Annotations[CheEclipseOrgManagedAnnotationsDigest] == y.Annotations[CheEclipseOrgManagedAnnotationsDigest]
+			x.Annotations[constants.CheEclipseOrgManagedAnnotationsDigest] == y.Annotations[constants.CheEclipseOrgManagedAnnotationsDigest]
 	}),
 }
 
 func SyncRouteToCluster(
-	deployContext *DeployContext,
+	deployContext *chetypes.DeployContext,
 	name string,
-	host string,
 	path string,
 	serviceName string,
 	servicePort int32,
-	routeCustomSettings orgv1.RouteCustomSettings,
 	component string) (bool, error) {
 
-	routeSpec, err := GetRouteSpec(deployContext, name, host, path, serviceName, servicePort, routeCustomSettings, component)
+	routeSpec, err := GetRouteSpec(deployContext, name, path, serviceName, servicePort, component)
 	if err != nil {
 		return false, err
 	}
 
-	if host != "" {
+	if deployContext.CheCluster.Spec.Ingress.Hostname != "" {
 		return Sync(deployContext, routeSpec, routeWithHostDiffOpts)
 	}
 	return Sync(deployContext, routeSpec, routeDiffOpts)
@@ -73,24 +73,23 @@ func SyncRouteToCluster(
 
 // GetRouteSpec returns default configuration of a route in Che namespace.
 func GetRouteSpec(
-	deployContext *DeployContext,
+	deployContext *chetypes.DeployContext,
 	name string,
-	host string,
 	path string,
 	serviceName string,
 	servicePort int32,
-	routeCustomSettings orgv1.RouteCustomSettings,
 	component string) (*routev1.Route, error) {
 
-	cheFlavor := DefaultCheFlavor(deployContext.CheCluster)
-	labels := GetLabels(deployContext.CheCluster, component)
-	MergeLabels(labels, routeCustomSettings.Labels)
+	labels := GetLabels(component)
+	for k, v := range deployContext.CheCluster.Spec.Ingress.Labels {
+		labels[k] = v
+	}
 
 	// add custom annotations
 	var annotations map[string]string
-	if len(routeCustomSettings.Annotations) > 0 {
+	if len(deployContext.CheCluster.Spec.Ingress.Annotations) > 0 {
 		annotations = make(map[string]string)
-		for k, v := range routeCustomSettings.Annotations {
+		for k, v := range deployContext.CheCluster.Spec.Ingress.Annotations {
 			annotations[k] = v
 		}
 	}
@@ -108,10 +107,10 @@ func GetRouteSpec(
 		for _, k := range annotationsKeys {
 			data += k + ":" + annotations[k] + ","
 		}
-		if util.IsTestMode() {
-			annotations[CheEclipseOrgManagedAnnotationsDigest] = "0000"
+		if test.IsTestMode() {
+			annotations[constants.CheEclipseOrgManagedAnnotationsDigest] = "0000"
 		} else {
-			annotations[CheEclipseOrgManagedAnnotationsDigest] = util.ComputeHash256([]byte(data))
+			annotations[constants.CheEclipseOrgManagedAnnotationsDigest] = utils.ComputeHash256([]byte(data))
 		}
 	}
 
@@ -146,10 +145,11 @@ func GetRouteSpec(
 		},
 	}
 
+	host := deployContext.CheCluster.Spec.Ingress.Hostname
 	if host != "" {
 		route.Spec.Host = host
-	} else if routeCustomSettings.Domain != "" {
-		route.Spec.Host = fmt.Sprintf(HostNameTemplate, route.ObjectMeta.Name, route.ObjectMeta.Namespace, routeCustomSettings.Domain)
+	} else if deployContext.CheCluster.Spec.Ingress.Domain != "" {
+		route.Spec.Host = fmt.Sprintf(HostNameTemplate, route.ObjectMeta.Name, route.ObjectMeta.Namespace, deployContext.CheCluster.Spec.Ingress.Domain)
 	}
 
 	route.Spec.TLS = &routev1.TLSConfig{
@@ -158,11 +158,11 @@ func GetRouteSpec(
 	}
 
 	// for server and dashboard ingresses
-	if (component == cheFlavor || component == cheFlavor+"-dashboard") && deployContext.CheCluster.Spec.Server.CheHostTLSSecret != "" {
+	if deployContext.CheCluster.Spec.Ingress.TlsSecretName != "" {
 		secret := &corev1.Secret{}
 		namespacedName := types.NamespacedName{
 			Namespace: deployContext.CheCluster.Namespace,
-			Name:      deployContext.CheCluster.Spec.Server.CheHostTLSSecret,
+			Name:      deployContext.CheCluster.Spec.Ingress.TlsSecretName,
 		}
 		if err := deployContext.ClusterAPI.Client.Get(context.TODO(), namespacedName, secret); err != nil {
 			return nil, err

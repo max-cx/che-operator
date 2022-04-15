@@ -77,8 +77,8 @@
             "group": "build"
         },
         {
-            "label": "Update resources",
-            "command": "make update-resources -s",
+            "label": "Update all",
+            "command": "make update -s",
             "type": "shell",
             "args": [],
             "problemMatcher": [

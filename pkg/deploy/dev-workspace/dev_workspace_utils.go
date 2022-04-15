@@ -16,9 +16,11 @@ import (
 	"context"
 	"strings"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
@@ -29,16 +31,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func isDevWorkspaceDeploymentExists(deployContext *deploy.DeployContext) (bool, error) {
+func isDevWorkspaceDeploymentExists(deployContext *chetypes.DeployContext) (bool, error) {
 	return deploy.Get(deployContext, types.NamespacedName{
 		Namespace: DevWorkspaceNamespace,
 		Name:      DevWorkspaceDeploymentName,
 	}, &appsv1.Deployment{})
 }
 
-func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
+func isDevWorkspaceOperatorCSVExists(deployContext *chetypes.DeployContext) bool {
 	// If clusterserviceversions resource doesn't exist in cluster DWO as well will not be present
-	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, ClusterServiceVersionResourceName) {
+	if !utils.IsK8SResourceServed(deployContext.ClusterAPI.DiscoveryClient, ClusterServiceVersionResourceName) {
 		return false
 	}
 
@@ -58,9 +60,9 @@ func isDevWorkspaceOperatorCSVExists(deployContext *deploy.DeployContext) bool {
 	return false
 }
 
-func isWebTerminalSubscriptionExist(deployContext *deploy.DeployContext) (bool, error) {
+func isWebTerminalSubscriptionExist(deployContext *chetypes.DeployContext) (bool, error) {
 	// If subscriptions resource doesn't exist in cluster WTO as well will not be present
-	if !util.HasK8SResourceObject(deployContext.ClusterAPI.DiscoveryClient, SubscriptionResourceName) {
+	if !utils.IsK8SResourceServed(deployContext.ClusterAPI.DiscoveryClient, SubscriptionResourceName) {
 		return false, nil
 	}
 
@@ -82,12 +84,12 @@ func isWebTerminalSubscriptionExist(deployContext *deploy.DeployContext) (bool, 
 	return true, nil
 }
 
-func createDwNamespace(deployContext *deploy.DeployContext) (bool, error) {
+func createDwNamespace(deployContext *chetypes.DeployContext) (bool, error) {
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: DevWorkspaceNamespace,
 			Annotations: map[string]string{
-				deploy.CheEclipseOrgNamespace: deployContext.CheCluster.Namespace,
+				constants.CheEclipseOrgNamespace: deployContext.CheCluster.Namespace,
 			},
 		},
 		Spec: corev1.NamespaceSpec{},
@@ -96,8 +98,8 @@ func createDwNamespace(deployContext *deploy.DeployContext) (bool, error) {
 	return deploy.CreateIfNotExists(deployContext, namespace)
 }
 
-func isOnlyOneOperatorManagesDWResources(deployContext *deploy.DeployContext) (bool, error) {
-	cheClusters := &orgv1.CheClusterList{}
+func isOnlyOneOperatorManagesDWResources(deployContext *chetypes.DeployContext) (bool, error) {
+	cheClusters := &chev2.CheClusterList{}
 	err := deployContext.ClusterAPI.NonCachingClient.List(context.TODO(), cheClusters)
 	if err != nil {
 		return false, err

@@ -10,12 +10,14 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-bases:
-  - ../../manifests
-patchesJson6902:
-- path: che-operator.clusterserviceversion-description-patch.yaml
-  target:
-    group: operators.coreos.com
-    version: v1alpha1
-    kind: ClusterServiceVersion
-    name: eclipse-che-preview-openshift.v0.0.0
+resources:
+  - ../../crd
+  - ../../rbac
+  - ../../manager
+  - ../../namespace
+  - ../../webhook
+
+# OpenShift platform specific patches
+patchesStrategicMerge:
+  - patches/cainjection_in_checlusters.yaml
+  - patches/service_cert_patch.yaml

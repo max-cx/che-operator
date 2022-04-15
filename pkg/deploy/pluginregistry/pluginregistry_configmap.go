@@ -14,7 +14,7 @@ package pluginregistry
 import (
 	"encoding/json"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 )
 
 type PluginRegistryConfigMap struct {
@@ -23,11 +23,11 @@ type PluginRegistryConfigMap struct {
 	ChePluginRegistryURL                     string `json:"CHE_PLUGIN_REGISTRY_URL"`
 }
 
-func (p *PluginRegistryReconciler) getConfigMapData(ctx *deploy.DeployContext) (map[string]string, error) {
+func (p *PluginRegistryReconciler) getConfigMapData(ctx *chetypes.DeployContext) (map[string]string, error) {
 	pluginRegistryEnv := make(map[string]string)
 	data := &PluginRegistryConfigMap{
-		CheSidecarContainersRegistryURL:          ctx.CheCluster.Spec.Server.AirGapContainerRegistryHostname,
-		CheSidecarContainersRegistryOrganization: ctx.CheCluster.Spec.Server.AirGapContainerRegistryOrganization,
+		CheSidecarContainersRegistryURL:          ctx.CheCluster.Spec.ContainerRegistry.Hostname,
+		CheSidecarContainersRegistryOrganization: ctx.CheCluster.Spec.ContainerRegistry.Organization,
 		ChePluginRegistryURL:                     ctx.CheCluster.Status.PluginRegistryURL,
 	}
 

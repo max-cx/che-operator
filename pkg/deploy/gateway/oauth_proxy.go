@@ -18,18 +18,21 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func getGatewayOauthProxyConfigSpec(ctx *deploy.DeployContext, cookieSecret string) corev1.ConfigMap {
+func getGatewayOauthProxyConfigSpec(ctx *chetypes.DeployContext, cookieSecret string) corev1.ConfigMap {
 	instance := ctx.CheCluster
 
 	var config string
-	if util.IsOpenShift {
+	if infrastructure.IsOpenShift() {
 		config = openshiftOauthProxyConfig(ctx, cookieSecret)
 	} else {
 		config = kubernetesOauthProxyconfig(ctx, cookieSecret)
@@ -42,7 +45,7 @@ func getGatewayOauthProxyConfigSpec(ctx *deploy.DeployContext, cookieSecret stri
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "che-gateway-config-oauth-proxy",
 			Namespace: instance.Namespace,
-			Labels:    deploy.GetLabels(instance, GatewayServiceName),
+			Labels:    deploy.GetLabels(GatewayServiceName),
 		},
 		Data: map[string]string{
 			"oauth-proxy.cfg": config,
@@ -50,7 +53,7 @@ func getGatewayOauthProxyConfigSpec(ctx *deploy.DeployContext, cookieSecret stri
 	}
 }
 
-func openshiftOauthProxyConfig(ctx *deploy.DeployContext, cookieSecret string) string {
+func openshiftOauthProxyConfig(ctx *chetypes.DeployContext, cookieSecret string) string {
 	return fmt.Sprintf(`
 http_address = ":%d"
 https_address = ""
@@ -72,14 +75,14 @@ skip_provider_button = true
 %s
 `, GatewayServicePort,
 		ctx.CheCluster.GetCheHost(),
-		ctx.CheCluster.Spec.Auth.OAuthClientName,
-		ctx.CheCluster.Spec.Auth.OAuthSecret,
+		ctx.CheCluster.Spec.Ingress.Auth.OAuthClientName,
+		ctx.CheCluster.Spec.Ingress.Auth.OAuthSecret,
 		GatewayServiceName,
 		cookieSecret,
 		skipAuthConfig(ctx.CheCluster))
 }
 
-func kubernetesOauthProxyconfig(ctx *deploy.DeployContext, cookieSecret string) string {
+func kubernetesOauthProxyconfig(ctx *chetypes.DeployContext, cookieSecret string) string {
 	return fmt.Sprintf(`
 proxy_prefix = "/oauth"
 http_address = ":%d"
@@ -103,25 +106,25 @@ skip_provider_button = true
 %s
 `, GatewayServicePort,
 		ctx.CheCluster.GetCheHost(),
-		ctx.CheCluster.Spec.Auth.IdentityProviderURL,
-		ctx.CheCluster.Spec.Auth.OAuthClientName,
-		ctx.CheCluster.Spec.Auth.OAuthSecret,
+		ctx.CheCluster.Spec.Ingress.Auth.IdentityProviderURL,
+		ctx.CheCluster.Spec.Ingress.Auth.OAuthClientName,
+		ctx.CheCluster.Spec.Ingress.Auth.OAuthSecret,
 		cookieSecret,
 		skipAuthConfig(ctx.CheCluster))
 }
 
-func skipAuthConfig(instance *orgv1.CheCluster) string {
+func skipAuthConfig(instance *chev2.CheCluster) string {
 	var skipAuthPaths []string
-	if !instance.Spec.Server.ExternalPluginRegistry {
-		skipAuthPaths = append(skipAuthPaths, "^/"+deploy.PluginRegistryName)
+	if !instance.Spec.ServerComponents.PluginRegistry.DisableInternalRegistry {
+		skipAuthPaths = append(skipAuthPaths, "^/"+constants.PluginRegistryName)
 	}
-	if !instance.Spec.Server.ExternalDevfileRegistry {
-		skipAuthPaths = append(skipAuthPaths, "^/"+deploy.DevfileRegistryName)
+	if !instance.Spec.ServerComponents.DevfileRegistry.DisableInternalRegistry {
+		skipAuthPaths = append(skipAuthPaths, "^/"+constants.DevfileRegistryName)
 	}
 	skipAuthPaths = append(skipAuthPaths, "/healthz$")
 	if len(skipAuthPaths) > 0 {
 		propName := "skip_auth_routes"
-		if util.IsOpenShift {
+		if infrastructure.IsOpenShift() {
 			propName = "skip_auth_regex"
 		}
 		return fmt.Sprintf("%s = \"%s\"", propName, strings.Join(skipAuthPaths, "|"))
@@ -129,11 +132,10 @@ func skipAuthConfig(instance *orgv1.CheCluster) string {
 	return ""
 }
 
-func getOauthProxyContainerSpec(ctx *deploy.DeployContext) corev1.Container {
-	authnImage := util.GetValue(ctx.CheCluster.Spec.Auth.GatewayAuthenticationSidecarImage, deploy.DefaultGatewayAuthenticationSidecarImage(ctx.CheCluster))
+func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 	return corev1.Container{
 		Name:            "oauth-proxy",
-		Image:           authnImage,
+		Image:           defaults.GetGatewayAuthenticationSidecarImage(ctx.CheCluster),
 		ImagePullPolicy: corev1.PullAlways,
 		Args: []string{
 			"--config=/etc/oauth-proxy/oauth-proxy.cfg",

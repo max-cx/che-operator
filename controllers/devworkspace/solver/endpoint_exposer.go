@@ -17,10 +17,10 @@ import (
 	"fmt"
 
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
-	"github.com/devfile/devworkspace-operator/pkg/constants"
-	"github.com/eclipse-che/che-operator/api/v2alpha1"
+	dwconstants "github.com/devfile/devworkspace-operator/pkg/constants"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
 	"github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -62,13 +62,13 @@ func getEndpointExposingObjectName(componentName string, workspaceID string, por
 	return fmt.Sprintf("%s-%s-%d-%s", workspaceID, componentName, port, endpointName)
 }
 
-func (e *RouteExposer) initFrom(ctx context.Context, cl client.Client, cluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting) error {
+func (e *RouteExposer) initFrom(ctx context.Context, cl client.Client, cluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting) error {
 	e.baseDomain = cluster.Status.WorkspaceBaseDomain
 	e.devWorkspaceID = routing.Spec.DevWorkspaceId
 
-	if cluster.Spec.Workspaces.DomainEndpoints.TlsSecretName != "" {
+	if cluster.Spec.Ingress.TlsSecretName != "" {
 		secret := &corev1.Secret{}
-		err := cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.Workspaces.DomainEndpoints.TlsSecretName, Namespace: cluster.Namespace}, secret)
+		err := cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.Ingress.TlsSecretName, Namespace: cluster.Namespace}, secret)
 		if err != nil {
 			return err
 		}
@@ -80,12 +80,12 @@ func (e *RouteExposer) initFrom(ctx context.Context, cl client.Client, cluster *
 	return nil
 }
 
-func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster *v2alpha1.CheCluster, routing *dwo.DevWorkspaceRouting, ingressAnnotations map[string]string) error {
+func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, ingressAnnotations map[string]string) error {
 	e.baseDomain = cluster.Status.WorkspaceBaseDomain
 	e.devWorkspaceID = routing.Spec.DevWorkspaceId
 	e.ingressAnnotations = ingressAnnotations
 
-	if cluster.Spec.Workspaces.DomainEndpoints.TlsSecretName != "" {
+	if cluster.Spec.Ingress.TlsSecretName != "" {
 		tlsSecretName := routing.Spec.DevWorkspaceId + "-endpoints"
 		e.tlsSecretName = tlsSecretName
 
@@ -95,7 +95,7 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 		err := cl.Get(ctx, client.ObjectKey{Name: tlsSecretName, Namespace: routing.Namespace}, secret)
 		if errors.IsNotFound(err) {
 			secret = &corev1.Secret{}
-			err = cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.Workspaces.DomainEndpoints.TlsSecretName, Namespace: cluster.Namespace}, secret)
+			err = cl.Get(ctx, client.ObjectKey{Name: cluster.Spec.Ingress.TlsSecretName, Namespace: cluster.Namespace}, secret)
 			if err != nil {
 				return err
 			}
@@ -107,7 +107,7 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 					Name:      tlsSecretName,
 					Namespace: routing.Namespace,
 					Labels: map[string]string{
-						deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg,
+						constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						{
@@ -138,8 +138,8 @@ func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo) routev1.Route 
 			Name:      getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
 			Namespace: endpoint.service.Namespace,
 			Labels: map[string]string{
-				constants.DevWorkspaceIDLabel:   e.devWorkspaceID,
-				deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg,
+				dwconstants.DevWorkspaceIDLabel:    e.devWorkspaceID,
+				constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
 			},
 			Annotations:     routeAnnotations(endpoint.componentName, endpoint.endpointName),
 			OwnerReferences: endpoint.service.OwnerReferences,
@@ -180,8 +180,8 @@ func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo) networking
 			Name:      getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
 			Namespace: endpoint.service.Namespace,
 			Labels: map[string]string{
-				constants.DevWorkspaceIDLabel:   e.devWorkspaceID,
-				deploy.KubernetesPartOfLabelKey: deploy.CheEclipseOrg,
+				dwconstants.DevWorkspaceIDLabel:    e.devWorkspaceID,
+				constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
 			},
 			Annotations:     finalizeIngressAnnotations(e.ingressAnnotations, endpoint.componentName, endpoint.endpointName),
 			OwnerReferences: endpoint.service.OwnerReferences,

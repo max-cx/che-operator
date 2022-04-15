@@ -12,9 +12,11 @@
 package server
 
 import (
+	"github.com/devfile/devworkspace-operator/pkg/infrastructure"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
-	"github.com/eclipse-che/che-operator/pkg/util"
 	routev1 "github.com/openshift/api/route/v1"
 	networking "k8s.io/api/networking/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -28,7 +30,7 @@ func NewCheHostReconciler() *CheHostReconciler {
 	return &CheHostReconciler{}
 }
 
-func (s *CheHostReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Result, bool, error) {
+func (s *CheHostReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Result, bool, error) {
 	done, err := s.syncCheService(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
@@ -47,39 +49,36 @@ func (s *CheHostReconciler) Reconcile(ctx *deploy.DeployContext) (reconcile.Resu
 	return reconcile.Result{}, true, nil
 }
 
-func (s *CheHostReconciler) Finalize(ctx *deploy.DeployContext) bool {
+func (s *CheHostReconciler) Finalize(ctx *chetypes.DeployContext) bool {
 	return true
 }
 
-func (s *CheHostReconciler) syncCheService(ctx *deploy.DeployContext) (bool, error) {
+func (s *CheHostReconciler) syncCheService(ctx *chetypes.DeployContext) (bool, error) {
 	portName := []string{"http"}
 	portNumber := []int32{8080}
 
-	if ctx.CheCluster.Spec.Metrics.Enable {
+	if ctx.CheCluster.Spec.ServerComponents.Metrics.Enable {
 		portName = append(portName, "metrics")
-		portNumber = append(portNumber, deploy.DefaultCheMetricsPort)
+		portNumber = append(portNumber, constants.DefaultServerMetricsPort)
 	}
 
-	cheDebug := util.GetValue(ctx.CheCluster.Spec.Server.CheDebug, deploy.DefaultCheDebug)
-	if cheDebug == "true" {
+	if ctx.CheCluster.Spec.ServerComponents.CheServer.Debug {
 		portName = append(portName, "debug")
-		portNumber = append(portNumber, deploy.DefaultCheDebugPort)
+		portNumber = append(portNumber, constants.DefaultServerDebugPort)
 	}
 
 	spec := deploy.GetServiceSpec(ctx, deploy.CheServiceName, portName, portNumber, getComponentName(ctx))
 	return deploy.Sync(ctx, spec, deploy.ServiceDefaultDiffOpts)
 }
 
-func (s CheHostReconciler) exposeCheEndpoint(ctx *deploy.DeployContext) (string, bool, error) {
-	if !util.IsOpenShift {
+func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (string, bool, error) {
+	if !infrastructure.IsOpenShift() {
 		_, done, err := deploy.SyncIngressToCluster(
 			ctx,
 			getComponentName(ctx),
-			ctx.CheCluster.Spec.Server.CheHost,
 			"",
 			gateway.GatewayServiceName,
 			8080,
-			ctx.CheCluster.Spec.Server.CheServerIngress,
 			getComponentName(ctx))
 		if !done {
 			return "", false, err
@@ -97,11 +96,9 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *deploy.DeployContext) (string,
 	done, err := deploy.SyncRouteToCluster(
 		ctx,
 		getComponentName(ctx),
-		ctx.CheCluster.Spec.Server.CheHost,
 		"/",
 		gateway.GatewayServiceName,
 		8080,
-		ctx.CheCluster.Spec.Server.CheServerRoute,
 		getComponentName(ctx))
 	if !done {
 		return "", false, err
@@ -116,7 +113,7 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *deploy.DeployContext) (string,
 	return route.Spec.Host, true, nil
 }
 
-func (s CheHostReconciler) updateCheURL(cheHost string, ctx *deploy.DeployContext) (bool, error) {
+func (s CheHostReconciler) updateCheURL(cheHost string, ctx *chetypes.DeployContext) (bool, error) {
 	var cheUrl = "https://" + cheHost
 	if ctx.CheCluster.Status.CheURL != cheUrl {
 		ctx.CheCluster.Status.CheURL = cheUrl

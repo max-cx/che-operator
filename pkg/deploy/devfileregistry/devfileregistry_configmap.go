@@ -14,7 +14,7 @@ package devfileregistry
 import (
 	"encoding/json"
 
-	"github.com/eclipse-che/che-operator/pkg/deploy"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 )
 
 type DevFileRegistryConfigMap struct {
@@ -23,11 +23,11 @@ type DevFileRegistryConfigMap struct {
 	CheDevfileRegistryURL                string `json:"CHE_DEVFILE_REGISTRY_URL"`
 }
 
-func (d *DevfileRegistryReconciler) getConfigMapData(ctx *deploy.DeployContext) (map[string]string, error) {
+func (d *DevfileRegistryReconciler) getConfigMapData(ctx *chetypes.DeployContext) (map[string]string, error) {
 	devfileRegistryEnv := make(map[string]string)
 	data := &DevFileRegistryConfigMap{
-		CheDevfileImagesRegistryURL:          ctx.CheCluster.Spec.Server.AirGapContainerRegistryHostname,
-		CheDevfileImagesRegistryOrganization: ctx.CheCluster.Spec.Server.AirGapContainerRegistryOrganization,
+		CheDevfileImagesRegistryURL:          ctx.CheCluster.Spec.ContainerRegistry.Hostname,
+		CheDevfileImagesRegistryOrganization: ctx.CheCluster.Spec.ContainerRegistry.Organization,
 		CheDevfileRegistryURL:                ctx.CheCluster.Status.DevfileRegistryURL,
 	}
 

@@ -32,7 +32,7 @@ installOperatorSDK() {
     OPERATOR_SDK_TEMP_DIR="$(mktemp -q -d -t "OPERATOR_SDK_XXXXXX" 2>/dev/null || mktemp -q -d)"
 
     pushd "${ROOT_PROJECT_DIR}" || exit
-    make download-operator-sdk OP_SDK_DIR="${OPERATOR_SDK_TEMP_DIR}"
+    make install-operator-sdk OP_SDK_DIR="${OPERATOR_SDK_TEMP_DIR}"
     export OPERATOR_SDK_BINARY="${OPERATOR_SDK_TEMP_DIR}/operator-sdk"
     popd || exit
   fi
@@ -42,7 +42,7 @@ updateResources() {
   echo "[INFO] Update resources with skipping version incrementation and timestamp..."
 
   pushd "${ROOT_PROJECT_DIR}" || exit
-  make update-resources NO_DATE_UPDATE="true" NO_INCREMENT="true" -s
+  make update INCREMENT_BUNDLE_VERSION=false
   popd || exit
 }
 
@@ -52,20 +52,14 @@ checkCRDs() {
     echo "[INFO] Checking CRDs"
 
     # files to check
-    local checluster_CRD_V1="config/crd/bases/org_v1_che_crd.yaml"
-    local chebackupserverconfiguration_CRD_V1="config/crd/bases/org.eclipse.che_chebackupserverconfigurations_crd.yaml"
-    local checlusterbackup_CRD_V1="config/crd/bases/org.eclipse.che_checlusterbackups_crd.yaml"
-    local checlusterrestore_CRD_V1="config/crd/bases/org.eclipse.che_checlusterrestores_crd.yaml"
+    local checluster_CRD="config/crd/bases/org.eclipse.che_checlusters.yaml"
 
     changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
     # Check if there are any difference in the crds. If yes, then fail check.
-    if [[ " ${changedFiles[*]} " =~ $checluster_CRD_V1 ]] || \
-       [[ " ${changedFiles[*]} " =~ $chebackupserverconfiguration_CRD_V1 ]] || \
-       [[ " ${changedFiles[*]} " =~ $checlusterbackup_CRD_V1 ]] || \
-       [[ " ${changedFiles[*]} " =~ $checlusterrestore_CRD_V1 ]]
+    if [[ " ${changedFiles[*]} " =~ $checluster_CRD ]]
     then
         echo "[ERROR] CRD file is not up to date: ${BASH_REMATCH}"
-        echo "[ERROR] Run 'make update-resources -s' to regenerate CRD files."
+        echo "[ERROR] Run 'make update -s' to regenerate CRD files."
         exit 1
     else
         echo "[INFO] CRDs files are up to date."
@@ -79,7 +73,7 @@ checkNextOlmBundle() {
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $CSV_OPENSHIFT ]]; then
     echo "[ERROR] Nighlty bundle is not up to date: ${BASH_REMATCH}"
-    echo "[ERROR] Run 'make update-resources -s' to regenerate next bundle files."
+    echo "[ERROR] Run 'make update -s' to regenerate next bundle files."
     exit 1
   else
     echo "[INFO] Next bundles are up to date."
@@ -93,7 +87,7 @@ checkDockerfile() {
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $Dockerfile ]]; then
     echo "[ERROR] Dockerfile is not up to date"
-    echo "[ERROR] Run 'make update-resources -s' to update Dockerfile"
+    echo "[ERROR] Run 'make update -s' to update Dockerfile"
     exit 1
   else
     echo "[INFO] Dockerfile is up to date."
@@ -107,7 +101,7 @@ checkOperatorYaml() {
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $managerYaml ]]; then
     echo "[ERROR] $managerYaml is not up to date"
-    echo "[ERROR] Run 'make update-resources -s' to update $managerYaml"
+    echo "[ERROR] Run 'make update -s' to update $managerYaml"
     exit 1
   else
     echo "[INFO] $managerYaml is up to date."
@@ -124,7 +118,7 @@ checkRoles() {
   )
   if [[ " ${changedFiles[*]} " =~ $RoleYaml ]] || [[ " ${changedFiles[*]} " =~ $ClusterRoleYaml ]]; then
     echo "[ERROR] Roles are not up to date: ${BASH_REMATCH}"
-    echo "[ERROR] Run 'make update-resources -s' to update them."
+    echo "[ERROR] Run 'make update -s' to update them."
     exit 1
   else
     echo "[INFO] Roles are up to date."
@@ -137,10 +131,23 @@ checkHelmCharts() {
   )
   if [[ " ${changedFiles[*]} " =~ helmcharts ]]; then
     echo "[ERROR] Helm Charts are not up to date"
-    echo "[ERROR] Run 'make update-resources -s' to update them."
+    echo "[ERROR] Run 'make update -s' to update them."
     exit 1
   else
     echo "[INFO] Helm Charts are up to date."
+  fi
+}
+
+checkDeployment() {
+  changedFiles=(
+    $(git diff --name-only)
+  )
+  if [[ " ${changedFiles[*]} " =~ deploy/deployment ]]; then
+    echo "[ERROR] Deployment files are not up to date"
+    echo "[ERROR] Run 'make update -s' to update them."
+    exit 1
+  else
+    echo "[INFO] Deployment files are up to date."
   fi
 }
 
@@ -149,12 +156,14 @@ installOperatorSDK
 pushd "${ROOT_PROJECT_DIR}" || true
 
 updateResources
+
 checkCRDs
 checkRoles
 checkNextOlmBundle
 checkDockerfile
 checkOperatorYaml
 checkHelmCharts
+checkDeployment
 
 popd || true
 

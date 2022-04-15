@@ -18,8 +18,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	"github.com/eclipse-che/che-operator/pkg/util"
+	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/constants"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -121,12 +123,12 @@ func TestMountSecret(t *testing.T) {
 						Name:      "test-volume",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
-							KubernetesPartOfLabelKey:    CheEclipseOrg,
-							KubernetesComponentLabelKey: "che-secret", // corresponds to deployment name
+							constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+							constants.KubernetesComponentLabelKey: "che-secret", // corresponds to deployment name
 						},
 						Annotations: map[string]string{
-							CheEclipseOrgMountAs:   "file",
-							CheEclipseOrgMountPath: "/test-path",
+							constants.CheEclipseOrgMountAs:   "file",
+							constants.CheEclipseOrgMountPath: "/test-path",
 						},
 					},
 					Data: map[string][]byte{
@@ -189,12 +191,12 @@ func TestMountSecret(t *testing.T) {
 						Name:      "test-envs",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
-							KubernetesPartOfLabelKey:    CheEclipseOrg,
-							KubernetesComponentLabelKey: "che-secret", // corresponds to deployment name
+							constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+							constants.KubernetesComponentLabelKey: "che-secret", // corresponds to deployment name
 						},
 						Annotations: map[string]string{
-							CheEclipseOrgMountAs: "env",
-							CheEclipseOrgEnvName: "ENV_A",
+							constants.CheEclipseOrgMountAs: "env",
+							constants.CheEclipseOrgEnvName: "ENV_A",
 						},
 					},
 					Data: map[string][]byte{
@@ -279,14 +281,14 @@ func TestMountSecret(t *testing.T) {
 						Name:      "test-envs",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
-							KubernetesPartOfLabelKey:    CheEclipseOrg,
-							KubernetesComponentLabelKey: "che-secret", // corresponds to deployment name
+							constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+							constants.KubernetesComponentLabelKey: "che-secret", // corresponds to deployment name
 						},
 						Annotations: map[string]string{
-							CheEclipseOrgMountAs:          "env",
-							CheEclipseOrg + "/a_env-name": "ENV_A",
-							CheEclipseOrg + "/b_env-name": "ENV_B",
-							CheEclipseOrg + "/c_env-name": "ENV_C",
+							constants.CheEclipseOrgMountAs:          "env",
+							constants.CheEclipseOrg + "/a_env-name": "ENV_A",
+							constants.CheEclipseOrg + "/b_env-name": "ENV_B",
+							constants.CheEclipseOrg + "/c_env-name": "ENV_C",
 						},
 					},
 					Data: map[string][]byte{
@@ -302,17 +304,17 @@ func TestMountSecret(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+			chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
 
-			deployContext := &DeployContext{
-				CheCluster: &orgv1.CheCluster{
+			deployContext := &chetypes.DeployContext{
+				CheCluster: &chev2.CheCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "eclipse-che",
 					},
 				},
-				ClusterAPI: ClusterAPI{
+				ClusterAPI: chetypes.ClusterAPI{
 					Client:           cli,
 					NonCachingClient: cli,
 					Scheme:           scheme.Scheme,
@@ -399,12 +401,12 @@ func TestMountConfigMaps(t *testing.T) {
 						Name:      "test-volume",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
-							KubernetesPartOfLabelKey:    CheEclipseOrg,
-							KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
+							constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+							constants.KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
 						},
 						Annotations: map[string]string{
-							CheEclipseOrgMountAs:   "file",
-							CheEclipseOrgMountPath: "/test-path",
+							constants.CheEclipseOrgMountAs:   "file",
+							constants.CheEclipseOrgMountPath: "/test-path",
 						},
 					},
 					Data: map[string]string{
@@ -467,12 +469,12 @@ func TestMountConfigMaps(t *testing.T) {
 						Name:      "test-envs",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
-							KubernetesPartOfLabelKey:    CheEclipseOrg,
-							KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
+							constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+							constants.KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
 						},
 						Annotations: map[string]string{
-							CheEclipseOrgMountAs: "env",
-							CheEclipseOrgEnvName: "ENV_A",
+							constants.CheEclipseOrgMountAs: "env",
+							constants.CheEclipseOrgEnvName: "ENV_A",
 						},
 					},
 					Data: map[string]string{
@@ -557,14 +559,14 @@ func TestMountConfigMaps(t *testing.T) {
 						Name:      "test-envs",
 						Namespace: "eclipse-che",
 						Labels: map[string]string{
-							KubernetesPartOfLabelKey:    CheEclipseOrg,
-							KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
+							constants.KubernetesPartOfLabelKey:    constants.CheEclipseOrg,
+							constants.KubernetesComponentLabelKey: "che-configmap", // corresponds to deployment name
 						},
 						Annotations: map[string]string{
-							CheEclipseOrgMountAs:          "env",
-							CheEclipseOrg + "/a_env-name": "ENV_A",
-							CheEclipseOrg + "/b_env-name": "ENV_B",
-							CheEclipseOrg + "/c_env-name": "ENV_C",
+							constants.CheEclipseOrgMountAs:          "env",
+							constants.CheEclipseOrg + "/a_env-name": "ENV_A",
+							constants.CheEclipseOrg + "/b_env-name": "ENV_B",
+							constants.CheEclipseOrg + "/c_env-name": "ENV_C",
 						},
 					},
 					Data: map[string]string{
@@ -580,17 +582,17 @@ func TestMountConfigMaps(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
-			orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+			chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 			testCase.initObjects = append(testCase.initObjects, testCase.initDeployment)
 			cli := fake.NewFakeClientWithScheme(scheme.Scheme, testCase.initObjects...)
 
-			deployContext := &DeployContext{
-				CheCluster: &orgv1.CheCluster{
+			deployContext := &chetypes.DeployContext{
+				CheCluster: &chev2.CheCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "eclipse-che",
 					},
 				},
-				ClusterAPI: ClusterAPI{
+				ClusterAPI: chetypes.ClusterAPI{
 					Client:           cli,
 					NonCachingClient: cli,
 					Scheme:           scheme.Scheme,
@@ -610,21 +612,21 @@ func TestMountConfigMaps(t *testing.T) {
 }
 
 func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
-	orgv1.SchemeBuilder.AddToScheme(scheme.Scheme)
+	chev2.SchemeBuilder.AddToScheme(scheme.Scheme)
 	cli := fake.NewFakeClientWithScheme(scheme.Scheme)
-	deployContext := &DeployContext{
-		CheCluster: &orgv1.CheCluster{
+	deployContext := &chetypes.DeployContext{
+		CheCluster: &chev2.CheCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "eclipse-che",
 				Name:      "eclipse-che",
 			},
 		},
-		ClusterAPI: ClusterAPI{
+		ClusterAPI: chetypes.ClusterAPI{
 			Client:           cli,
 			NonCachingClient: cli,
 			Scheme:           scheme.Scheme,
 		},
-		Proxy: &Proxy{},
+		Proxy: &chetypes.Proxy{},
 	}
 
 	// initial sync
@@ -659,8 +661,8 @@ func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
 	}
 
 	// check env var
-	cmRevision := util.FindEnv(actual.Spec.Template.Spec.Containers[0].Env, "test-name")
-	if cmRevision == nil || cmRevision.Value != "test-value" {
+	value := utils.GetEnv(actual.Spec.Template.Spec.Containers[0].Env, "test-name")
+	if value != "test-value" {
 		t.Fatalf("Failed to sync deployment")
 	}
 }

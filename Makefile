@@ -45,8 +45,6 @@ else
   PLATFORM := kubernetes
 endif
 
-OPERATOR_SDK ?= operator-sdk
-
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 define go-get-tool
@@ -320,8 +318,8 @@ debug: generate genenerate-env download-devworkspace-resources setup-checluster 
 
 	# dlv has an issue with 'Ctrl-C' termination, that's why we're doing trick with detach.
 	dlv debug --listen=:2345 --headless=true --api-version=2 ./main.go -- &
-	OPERATOR_SDK_PID=$!
-	wait $$OPERATOR_SDK_PID
+	DLV_PID=$!
+	wait $${DLV_PID}
 
 manifests: download-controller-gen download-addlicense ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
@@ -459,7 +457,7 @@ uninstall: ## Uninstall Eclipse Che operator
 
 .PHONY: bundle
 bundle: SHELL := /bin/bash
-bundle: generate manifests download-kustomize ## Generate bundle manifests and metadata, then validate generated files.
+bundle: generate manifests download-kustomize download-operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
 	echo "[INFO] Updating OperatorHub bundle"
 
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
@@ -658,9 +656,9 @@ bundle-version: ## Prints a bundle version for a given channel
 	CSV_PATH=$$($(MAKE) csv-path)
 	echo $$(yq -r ".spec.version" "$${CSV_PATH}")
 
-OPM = $(shell pwd)/bin/opm
+OPM ?= $(shell pwd)/bin/opm
 download-opm: ## Download opm tool
-	command -v opm >/dev/null 2>&1 && exit
+	command -v $(OPM) >/dev/null 2>&1 && exit
 
 	OS=$(shell go env GOOS)
 	ARCH=$(shell go env GOARCH)
@@ -683,8 +681,11 @@ ADD_LICENSE = $(shell pwd)/bin/addlicense
 download-addlicense: ## Download addlicense tool
 	$(call go-get-tool,$(ADD_LICENSE),github.com/google/addlicense@99ebc9c9db7bceb8623073e894533b978d7b7c8a)
 
+OPERATOR_SDK ?= $(shell pwd)/bin/operator-sdk
 download-operator-sdk: SHELL := /bin/bash
 download-operator-sdk: ## Downloads operator sdk tool
+	command -v $(OPERATOR_SDK) >/dev/null 2>&1 && exit
+
 	OS=$(shell go env GOOS)
 	ARCH=$(shell go env GOARCH)
 	OPERATOR_SDK_VERSION=$$(yq -r '."operator-sdk"' $(PROJECT_DIR)/REQUIREMENTS)
@@ -698,12 +699,4 @@ download-operator-sdk: ## Downloads operator sdk tool
 check-requirements: SHELL := /bin/bash
 check-requirements: ## Check if all tools required versions are installed
 	command -v yq >/dev/null 2>&1 || { echo "[ERROR] yq is not installed. See https://github.com/kislyuk/yq"; exit 1; }
-	command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] scopeo is not installed."; exit 1; }
-	command -v $(OPERATOR_SDK) >/dev/null 2>&1 || { echo "[ERROR] operator-sdk is not installed."; exit 1; }
-	command -v opm >/dev/null 2>&1 || { echo "[ERROR] opm is not installed."; exit 1; }
-
-	OPERATOR_SDK_VERSION=$$($(OPERATOR_SDK) version | sed -n 's|operator-sdk version: "\([^"]*\).*|\1|p')
-	REQUIRED_OPERATOR_SDK_VERSION=$$(yq -r '."operator-sdk"' "$(PROJECT_DIR)/REQUIREMENTS")
-	[[ "$${OPERATOR_SDK_VERSION}" == "$${REQUIRED_OPERATOR_SDK_VERSION}" ]] || { echo "[ERROR] operator-sdk $${REQUIRED_OPERATOR_SDK_VERSION} is required, found $${OPERATOR_SDK_VERSION}"; exit 1; }
-
-	echo "[INFO] All requirements are met"
+	command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] skopeo is not installed."; exit 1; }

@@ -31,12 +31,12 @@ overrideDefaults() {
 }
 
 runTests() {
-  createNamespace ${NAMESPACE}
+  createNamespace "${NAMESPACE}"
 
-  useCustomOperatorImageInCSV ${OPERATOR_IMAGE}
+  useCustomOperatorImageInCSV "${OPERATOR_IMAGE}"
 
-  echo "$(getCheClusterCRFromExistedCSV)" | oc apply -n "${NAMESPACE}" -f -
-  waitEclipseCheDeployed $(getCheVersionFromExistedCSV)
+  getCheClusterCRFromExistedCSV | oc apply -n "${NAMESPACE}" -f -
+  waitEclipseCheDeployed "$(getCheVersionFromExistedCSV)"
 
   waitDevWorkspaceControllerStarted
 }

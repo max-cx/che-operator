@@ -103,7 +103,7 @@ $ chectl server:deploy --installer operator -p <PLATFORM> --che-operator-image=$
 2. Update OLM files:
 
 ```bash
-$ make update
+$ make update-dev-resources
 ```
 
 3. Build catalog source and bundle images:
@@ -252,7 +252,7 @@ Sometimes, during development, you need to modify some YAML definitions in the `
 For all these cases it's a necessary to generate a new OLM bundle to make these changes working with OLM. Run the VSCode tasks `Update resources` or use the terminal:
 
 ```bash
-$ make update
+$ make update-dev-resources
 ```
 
 Every changes will be included to the `bundle` folder and will override all previous changes. OLM bundle changes should be committed to the pull request.
@@ -260,7 +260,7 @@ Every changes will be included to the `bundle` folder and will override all prev
 To update a bundle without version incrementation and time update:
 
 ```bash
-$ make update INCREMENT_BUNDLE_VERSION=false
+$ make update-dev-resources INCREMENT_BUNDLE_VERSION=false
 ```
 
 ### Che operator PR checks

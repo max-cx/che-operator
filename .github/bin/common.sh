@@ -239,15 +239,24 @@ updateEclipseChe() {
       copyCheOperatorImageToMinikube
     fi
 
-    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/operator.yaml
-    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/operator.yaml
+    yq -riSY '.spec.template.spec.containers[0].image = "'${OPERATOR_IMAGE}'"' ${templates}/che-operator/kubernetes/operator.yaml
+    yq -riSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' ${templates}/che-operator/kubernetes/operator.yaml
   fi
 
   ${chectlbin} server:update \
     --batch \
     --templates ${templates}
 
-  local cheVersion=$(cat ${templates}/che-operator/operator.yaml | yq -r '.spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value')
+  local configManagerPath=""
+  if [[ -f ${templates}/che-operator/operator.yaml ]]; then
+    configManagerPath="${templates}/che-operator/operator.yaml"
+  elif [[ ${platform} == "minikube" ]]; then
+    configManagerPath="${templates}/che-operator/kubernetes/operator.yaml"
+  else
+    configManagerPath="${templates}/che-operator/openshift/operator.yaml"
+  fi
+
+  local cheVersion=$(cat "${configManagerPath}" | yq -r '.spec.template.spec.containers[0].env[] | select(.name == "CHE_VERSION") | .value')
   waitEclipseCheDeployed ${cheVersion}
 
   waitDevWorkspaceControllerStarted

@@ -42,7 +42,7 @@ updateResources() {
   echo "[INFO] Update resources with skipping version incrementation and timestamp..."
 
   pushd "${ROOT_PROJECT_DIR}" || exit
-  make update INCREMENT_BUNDLE_VERSION=false
+  make update-dev-resources INCREMENT_BUNDLE_VERSION=false
   popd || exit
 }
 
@@ -59,7 +59,7 @@ checkCRDs() {
     if [[ " ${changedFiles[*]} " =~ $checluster_CRD ]]
     then
         echo "[ERROR] CRD file is not up to date: ${BASH_REMATCH}"
-        echo "[ERROR] Run 'make update -s' to regenerate CRD files."
+        echo "[ERROR] Run 'make update-dev-resources' to regenerate CRD files."
         exit 1
     else
         echo "[INFO] CRDs files are up to date."
@@ -73,7 +73,7 @@ checkNextOlmBundle() {
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $CSV_OPENSHIFT ]]; then
     echo "[ERROR] Nighlty bundle is not up to date: ${BASH_REMATCH}"
-    echo "[ERROR] Run 'make update -s' to regenerate next bundle files."
+    echo "[ERROR] Run 'make update-dev-resources' to regenerate next bundle files."
     exit 1
   else
     echo "[INFO] Next bundles are up to date."
@@ -87,7 +87,7 @@ checkDockerfile() {
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $Dockerfile ]]; then
     echo "[ERROR] Dockerfile is not up to date"
-    echo "[ERROR] Run 'make update -s' to update Dockerfile"
+    echo "[ERROR] Run 'make update-dev-resources' to update Dockerfile"
     exit 1
   else
     echo "[INFO] Dockerfile is up to date."
@@ -101,7 +101,7 @@ checkOperatorYaml() {
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $managerYaml ]]; then
     echo "[ERROR] $managerYaml is not up to date"
-    echo "[ERROR] Run 'make update -s' to update $managerYaml"
+    echo "[ERROR] Run 'make update-dev-resources' to update $managerYaml"
     exit 1
   else
     echo "[INFO] $managerYaml is up to date."
@@ -118,7 +118,7 @@ checkRoles() {
   )
   if [[ " ${changedFiles[*]} " =~ $RoleYaml ]] || [[ " ${changedFiles[*]} " =~ $ClusterRoleYaml ]]; then
     echo "[ERROR] Roles are not up to date: ${BASH_REMATCH}"
-    echo "[ERROR] Run 'make update -s' to update them."
+    echo "[ERROR] Run 'make update-dev-resources' to update them."
     exit 1
   else
     echo "[INFO] Roles are up to date."
@@ -131,7 +131,7 @@ checkHelmCharts() {
   )
   if [[ " ${changedFiles[*]} " =~ helmcharts ]]; then
     echo "[ERROR] Helm Charts are not up to date"
-    echo "[ERROR] Run 'make update -s' to update them."
+    echo "[ERROR] Run 'make update-dev-resources' to update them."
     exit 1
   else
     echo "[INFO] Helm Charts are up to date."
@@ -144,7 +144,7 @@ checkDeployment() {
   )
   if [[ " ${changedFiles[*]} " =~ deploy/deployment ]]; then
     echo "[ERROR] Deployment files are not up to date"
-    echo "[ERROR] Run 'make update -s' to update them."
+    echo "[ERROR] Run 'make update-dev-resources' to update them."
     exit 1
   else
     echo "[INFO] Deployment files are up to date."

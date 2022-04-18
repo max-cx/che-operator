@@ -78,7 +78,7 @@
         },
         {
             "label": "Update all",
-            "command": "make update -s",
+            "command": "make update-dev-resources",
             "type": "shell",
             "args": [],
             "problemMatcher": [

@@ -88,7 +88,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Developer Tools
     certified: "false"
-    containerImage: docker.io/abazko/operator:20758
+    containerImage: quay.io/abazko/operator:20758
     createdAt: "2021-05-11T18:38:31Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
@@ -99,7 +99,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-openshift.v7.46.0-506.next
+  name: eclipse-che-preview-openshift.v7.47.0-509.next
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1164,7 +1164,7 @@ spec:
                         value: "1"
                       - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
                         value: "false"
-                    image: docker.io/abazko/operator:20758
+                    image: quay.io/abazko/operator:20758
                     imagePullPolicy: Always
                     livenessProbe:
                       failureThreshold: 10
@@ -1442,12 +1442,12 @@ spec:
     - name: Operator GitHub Repo
       url: https://github.com/eclipse-che/che-operator
   maintainers:
-    - email: dfestal@redhat.com
-      name: David Festal
+    - email: abazko@redhat.com
+      name: Anatolii Bazko
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.46.0-506.next
+  version: 7.47.0-509.next
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

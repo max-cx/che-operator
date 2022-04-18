@@ -29,10 +29,6 @@ else
 endif
 
 # Detect image tool
-ifeq (,$(shell which docker)$(shell which podman))
-	$(error docker or podman is required to proceed)
-endif
-
 ifneq (,$(shell which docker))
 	IMAGE_TOOL := docker
 else
@@ -121,6 +117,117 @@ help: ## Display this help.
 
 ##@ Development
 
+update-dev-resources: SHELL := /bin/bash
+update-dev-resources: check-requirements ## Update all resources
+	# Update ubi8 image
+	ubiMinimal8Version=$$(skopeo --override-os linux inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.version')
+	ubiMinimal8Release=$$(skopeo --override-os linux inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.release')
+	UBI8_MINIMAL_IMAGE="registry.access.redhat.com/ubi8-minimal:$${ubiMinimal8Version}-$${ubiMinimal8Release}"
+	skopeo --override-os linux inspect docker://$${UBI8_MINIMAL_IMAGE} > /dev/null
+	echo "[INFO] UBI8 image $${UBI8_MINIMAL_IMAGE}"
+
+	# config/manager/manager.yaml
+	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_pvc_jobs\") | .value ) = \"$${UBI8_MINIMAL_IMAGE}\"" $(CONFIG_MANAGER)
+
+	# Dockerfile
+	sed -i 's|registry.access.redhat.com/ubi8-minimal:[^\s]* |'$${UBI8_MINIMAL_IMAGE}' |g' $(PROJECT_DIR)/Dockerfile
+
+	$(MAKE) update-rbac
+	$(MAKE) bundle CHANNEL=next
+	$(MAKE) gen-deployment
+	$(MAKE) update-helmcharts CHANNEL=next
+	$(MAKE) fmt
+
+update-rbac: SHELL := /bin/bash
+update-rbac:
+	CLUSTER_ROLES=(
+		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
+		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-edit-workspaces.ClusterRole.yaml
+		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-leader-election-role.Role.yaml
+		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-proxy-role.ClusterRole.yaml
+		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-role.ClusterRole.yaml
+		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-metrics-reader.ClusterRole.yaml
+	)
+
+	# Updates cluster_role.yaml based on DW roles
+	## Removes old cluster roles
+	cat config/rbac/cluster_role.yaml | sed '/CHE-OPERATOR ROLES ONLY: END/q0' > config/rbac/cluster_role.yaml.tmp
+	mv config/rbac/cluster_role.yaml.tmp config/rbac/cluster_role.yaml
+
+	# Copy new cluster roles
+	for roles in "$${CLUSTER_ROLES[@]}"; do
+		echo "  # "$$(basename $$roles) >> config/rbac/cluster_role.yaml
+
+		CONTENT=$$(curl -sL $$roles | sed '1,/rules:/d')
+		while IFS= read -r line; do
+			echo "  $$line" >> config/rbac/cluster_role.yaml
+		done <<< "$$CONTENT"
+	done
+
+	ROLES=(
+		# currently, there are no other roles we need to incorporate
+	)
+
+	# Updates role.yaml
+	## Removes old roles
+	cat config/rbac/role.yaml | sed '/CHE-OPERATOR ROLES ONLY: END/q0' > config/rbac/role.yaml.tmp
+	mv config/rbac/role.yaml.tmp config/rbac/role.yaml
+
+	## Copy new roles
+	for roles in "$${ROLES[@]}"; do
+		echo "# "$$(basename $$roles) >> config/rbac/role.yaml
+
+		CONTENT=$$(curl -sL $$roles | sed '1,/rules:/d')
+		while IFS= read -r line; do
+			echo "$$line" >> config/rbac/role.yaml
+		done <<< "$$CONTENT"
+	done
+
+	echo "[INFO] Updated config/rbac/role.yaml"
+	echo "[INFO] Updated config/rbac/cluster_role.yam"
+
+update-helmcharts: SHELL := /bin/bash
+update-helmcharts: ## Update Helm Charts
+	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
+
+	HELM_DIR=$(PROJECT_DIR)/helmcharts/$(CHANNEL)
+	HELMCHARTS_TEMPLATES=$${HELM_DIR}/templates
+	HELMCHARTS_CRDS=$${HELM_DIR}/crds
+
+	rm -rf $${HELMCHARTS_TEMPLATES} $${HELMCHARTS_CRDS}
+	mkdir -p $${HELMCHARTS_TEMPLATES} $${HELMCHARTS_CRDS}
+
+	rsync -a --exclude='checlusters.org.eclipse.che.CustomResourceDefinition.yaml' $(DEPLOYMENT_DIR)/kubernetes/objects/ $${HELMCHARTS_TEMPLATES}
+	cp $(DEPLOYMENT_DIR)/kubernetes/org_v2_checluster.yaml $${HELMCHARTS_TEMPLATES}
+	cp $(DEPLOYMENT_DIR)/kubernetes/objects/checlusters.org.eclipse.che.CustomResourceDefinition.yaml $${HELMCHARTS_CRDS}
+
+	if [ $(CHANNEL) == "stable" ]; then
+		chartYaml=$${HELM_DIR}/Chart.yaml
+
+		CRDS_SAMPLES_FILES=(
+			$${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		)
+
+		CRDS_SAMPLES=""
+		for CRD_SAMPLE in "$${CRDS_SAMPLES_FILES[@]}"; do
+			CRD_SAMPLE=$$(cat $${CRD_SAMPLE} | yq -rY ". | (.metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\") | [.]")
+		 	CRDS_SAMPLES=$${CRDS_SAMPLES}$${CRD_SAMPLE}$$'\n'
+		done
+
+		yq -rYi --arg examples "$${CRDS_SAMPLES}" ".annotations.\"artifacthub.io/crdsExamples\" = \$$examples" $${chartYaml}
+		rm -rf $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+	else
+		yq -riY '.spec.ingress.tlsSecretName = "che-tls"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.metadata.namespace = $(ECLIPSE_CHE_NAMESPACE)' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+
+		yq -riY '.spec.ingress.domain = "{{ .Values.ingress.domain }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.ingress.auth.oAuthSecret = "{{ .Values.ingress.auth.oAuthSecret }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.ingress.auth.oAuthClientName = "{{ .Values.ingress.auth.oAuthClientName }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+		yq -riY '.spec.ingress.auth.identityProviderURL = "{{ .Values.ingress.auth.identityProviderURL }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
+	fi
+
+	echo "[INFO] HelmCharts updated $${HELM_DIR}"
+
 gen-deployment: SHELL := /bin/bash
 gen-deployment: manifests download-kustomize ## Generate Eclipse Che k8s deployment resources
 	rm -rf $(DEPLOYMENT_DIR)
@@ -143,7 +250,6 @@ gen-deployment: manifests download-kustomize ## Generate Eclipse Che k8s deploym
 
 		echo "[INFO] Deployments resources generated into $${PLATFORM_DIR}"
 	done
-	$(MAKE) fmt
 
 gen-chectl-tmpl: SHELL := /bin/bash
 gen-chectl-tmpl: ## Generate Eclipse Che k8s deployment resources used by chectl
@@ -424,117 +530,6 @@ bundle: generate manifests download-kustomize ## Generate bundle manifests and m
 
 	$(OPERATOR_SDK) bundle validate $${BUNDLE_PATH}
 
-update: SHELL := /bin/bash
-update: check-requirements ## Update all resources
-	# Update ubi8 image
-	ubiMinimal8Version=$$(skopeo --override-os linux inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.version')
-	ubiMinimal8Release=$$(skopeo --override-os linux inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.release')
-	UBI8_MINIMAL_IMAGE="registry.access.redhat.com/ubi8-minimal:$${ubiMinimal8Version}-$${ubiMinimal8Release}"
-	skopeo --override-os linux inspect docker://$${UBI8_MINIMAL_IMAGE} > /dev/null
-	echo "[INFO] UBI8 image $${UBI8_MINIMAL_IMAGE}"
-
-	# config/manager/manager.yaml
-	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_pvc_jobs\") | .value ) = \"$${UBI8_MINIMAL_IMAGE}\"" $(CONFIG_MANAGER)
-
-	# Dockerfile
-	sed -i 's|registry.access.redhat.com/ubi8-minimal:[^\s]* |'$${UBI8_MINIMAL_IMAGE}' |g' $(PROJECT_DIR)/Dockerfile
-
-	$(MAKE) update-rbac
-	$(MAKE) bundle CHANNEL=next
-	$(MAKE) gen-deployment
-	$(MAKE) update-helmcharts CHANNEL=next
-	$(MAKE) fmt
-
-update-rbac: SHELL := /bin/bash
-update-rbac:
-	CLUSTER_ROLES=(
-		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
-		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-edit-workspaces.ClusterRole.yaml
-		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-leader-election-role.Role.yaml
-		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-proxy-role.ClusterRole.yaml
-		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-role.ClusterRole.yaml
-		https://raw.githubusercontent.com/devfile/devworkspace-operator/${DEV_WORKSPACE_CONTROLLER_VERSION}/deploy/deployment/openshift/objects/devworkspace-controller-metrics-reader.ClusterRole.yaml
-	)
-
-	# Updates cluster_role.yaml based on DW roles
-	## Removes old cluster roles
-	cat config/rbac/cluster_role.yaml | sed '/CHE-OPERATOR ROLES ONLY: END/q0' > config/rbac/cluster_role.yaml.tmp
-	mv config/rbac/cluster_role.yaml.tmp config/rbac/cluster_role.yaml
-
-	# Copy new cluster roles
-	for roles in "$${CLUSTER_ROLES[@]}"; do
-		echo "  # "$$(basename $$roles) >> config/rbac/cluster_role.yaml
-
-		CONTENT=$$(curl -sL $$roles | sed '1,/rules:/d')
-		while IFS= read -r line; do
-			echo "  $$line" >> config/rbac/cluster_role.yaml
-		done <<< "$$CONTENT"
-	done
-
-	ROLES=(
-		# currently, there are no other roles we need to incorporate
-	)
-
-	# Updates role.yaml
-	## Removes old roles
-	cat config/rbac/role.yaml | sed '/CHE-OPERATOR ROLES ONLY: END/q0' > config/rbac/role.yaml.tmp
-	mv config/rbac/role.yaml.tmp config/rbac/role.yaml
-
-	## Copy new roles
-	for roles in "$${ROLES[@]}"; do
-		echo "# "$$(basename $$roles) >> config/rbac/role.yaml
-
-		CONTENT=$$(curl -sL $$roles | sed '1,/rules:/d')
-		while IFS= read -r line; do
-			echo "$$line" >> config/rbac/role.yaml
-		done <<< "$$CONTENT"
-	done
-
-	echo "[INFO] Updated config/rbac/role.yaml"
-	echo "[INFO] Updated config/rbac/cluster_role.yam"
-
-update-helmcharts: SHELL := /bin/bash
-update-helmcharts: ## Update Helm Charts
-	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
-
-	HELM_DIR=$(PROJECT_DIR)/helmcharts/$(CHANNEL)
-	HELMCHARTS_TEMPLATES=$${HELM_DIR}/templates
-	HELMCHARTS_CRDS=$${HELM_DIR}/crds
-
-	rm -rf $${HELMCHARTS_TEMPLATES} $${HELMCHARTS_CRDS}
-	mkdir -p $${HELMCHARTS_TEMPLATES} $${HELMCHARTS_CRDS}
-
-	rsync -a --exclude='checlusters.org.eclipse.che.CustomResourceDefinition.yaml' $(DEPLOYMENT_DIR)/kubernetes/objects/ $${HELMCHARTS_TEMPLATES}
-	cp $(DEPLOYMENT_DIR)/kubernetes/org_v2_checluster.yaml $${HELMCHARTS_TEMPLATES}
-	cp $(DEPLOYMENT_DIR)/kubernetes/objects/checlusters.org.eclipse.che.CustomResourceDefinition.yaml $${HELMCHARTS_CRDS}
-
-	if [ $(CHANNEL) == "stable" ]; then
-		chartYaml=$${HELM_DIR}/Chart.yaml
-
-		CRDS_SAMPLES_FILES=(
-			$${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-		)
-
-		CRDS_SAMPLES=""
-		for CRD_SAMPLE in "$${CRDS_SAMPLES_FILES[@]}"; do
-			CRD_SAMPLE=$$(cat $${CRD_SAMPLE} | yq -rY ". | (.metadata.namespace = \"$(ECLIPSE_CHE_NAMESPACE)\") | [.]")
-		 	CRDS_SAMPLES=$${CRDS_SAMPLES}$${CRD_SAMPLE}$$'\n'
-		done
-
-		yq -rYi --arg examples "$${CRDS_SAMPLES}" ".annotations.\"artifacthub.io/crdsExamples\" = \$$examples" $${chartYaml}
-		rm -rf $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-	else
-		yq -riY '.spec.ingress.tlsSecretName = "che-tls"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-		yq -riY '.metadata.namespace = $(ECLIPSE_CHE_NAMESPACE)' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-
-		yq -riY '.spec.ingress.domain = "{{ .Values.ingress.domain }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-		yq -riY '.spec.ingress.auth.oAuthSecret = "{{ .Values.ingress.auth.oAuthSecret }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-		yq -riY '.spec.ingress.auth.oAuthClientName = "{{ .Values.ingress.auth.oAuthClientName }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-		yq -riY '.spec.ingress.auth.identityProviderURL = "{{ .Values.ingress.auth.identityProviderURL }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-	fi
-
-	echo "[INFO] HelmCharts updated $${HELM_DIR}"
-
 .PHONY: bundle-build
 bundle-build: SHELL := /bin/bash
 bundle-build: ## Build the bundle image
@@ -547,6 +542,7 @@ bundle-build: ## Build the bundle image
 	popd
 
 .PHONY: bundle-push
+bundle-push: SHELL := /bin/bash
 bundle-push: ## Push the bundle image
 	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
 	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
@@ -555,7 +551,8 @@ bundle-push: ## Push the bundle image
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
 .PHONY: catalog-build
-catalog-build: opm ## Build a catalog image
+catalog-build: SHELL := /bin/bash
+catalog-build: download-opm ## Build a catalog image
 	[[ -z "$(BUNDLE_IMG)" ]] && { echo [ERROR] BUNDLE_IMG not defined; exit 1; }
 	[[ -z "$(CATALOG_IMG)" ]] && { echo [ERROR] CATALOG_IMG not defined; exit 1; }
 
@@ -568,6 +565,7 @@ catalog-build: opm ## Build a catalog image
 	--mode semver $(FROM_INDEX_OPT)
 
 .PHONY: catalog-push
+catalog-push: SHELL := /bin/bash
 catalog-push: ## Push a catalog image
 	[[ -z "$(CATALOG_IMG)" ]] && { echo [ERROR] CATALOG_IMG not defined; exit 1; }
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
@@ -660,15 +658,18 @@ bundle-version: ## Prints a bundle version for a given channel
 	CSV_PATH=$$($(MAKE) csv-path)
 	echo $$(yq -r ".spec.version" "$${CSV_PATH}")
 
+OPM = $(shell pwd)/bin/opm
 download-opm: ## Download opm tool
+	command -v opm >/dev/null 2>&1 && exit
+
 	OS=$(shell go env GOOS)
 	ARCH=$(shell go env GOARCH)
 	OPM_VERSION=$$(yq -r '.opm' $(PROJECT_DIR)/REQUIREMENTS)
 
 	echo "[INFO] Downloading opm version: $$OPM_VERSION"
 
-	curl -SLo opm https://github.com/operator-framework/operator-registry/releases/download/$${OPM_VERSION}/$${OS}-$${ARCH}-opm
-	chmod +x opm
+	curl -SLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/$${OPM_VERSION}/$${OS}-$${ARCH}-opm
+	chmod +x $(OPM)
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 download-controller-gen: ## Download controller-gen tool
@@ -698,15 +699,11 @@ check-requirements: SHELL := /bin/bash
 check-requirements: ## Check if all tools required versions are installed
 	command -v yq >/dev/null 2>&1 || { echo "[ERROR] yq is not installed. See https://github.com/kislyuk/yq"; exit 1; }
 	command -v skopeo >/dev/null 2>&1 || { echo "[ERROR] scopeo is not installed."; exit 1; }
-	command -v operator-sdk >/dev/null 2>&1 || { echo "[ERROR] operator-sdk is not installed."; exit 1; }
+	command -v $(OPERATOR_SDK) >/dev/null 2>&1 || { echo "[ERROR] operator-sdk is not installed."; exit 1; }
 	command -v opm >/dev/null 2>&1 || { echo "[ERROR] opm is not installed."; exit 1; }
 
-	OPERATOR_SDK_VERSION=$$(operator-sdk version | sed -n 's|operator-sdk version: "\([^"]*\).*|\1|p')
+	OPERATOR_SDK_VERSION=$$($(OPERATOR_SDK) version | sed -n 's|operator-sdk version: "\([^"]*\).*|\1|p')
 	REQUIRED_OPERATOR_SDK_VERSION=$$(yq -r '."operator-sdk"' "$(PROJECT_DIR)/REQUIREMENTS")
 	[[ "$${OPERATOR_SDK_VERSION}" == "$${REQUIRED_OPERATOR_SDK_VERSION}" ]] || { echo "[ERROR] operator-sdk $${REQUIRED_OPERATOR_SDK_VERSION} is required, found $${OPERATOR_SDK_VERSION}"; exit 1; }
-
-	OPM_VERSION=$$(opm version | sed -n 's|.*OpmVersion:"\([^"]*\).*|\1|p')
-	REQUIRED_OPM_VERSION=$$(yq -r '."opm"' "$(PROJECT_DIR)/REQUIREMENTS")
-	[[ "$${OPM_VERSION}" == "$${REQUIRED_OPM_VERSION}" ]] || { echo "[ERROR] opm $${REQUIRED_OPM_VERSION} is required"; exit 1; }
 
 	echo "[INFO] All requirements are met"

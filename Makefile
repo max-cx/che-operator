@@ -461,7 +461,7 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	echo "[INFO] Updating OperatorHub bundle"
 
 	[[ -z "$(CHANNEL)" ]] && { echo [ERROR] CHANNEL not defined; exit 1; }
-	[[ "$(INCRMENT_BUNDLE_VERSION)" == false ]] || $(MAKE) _increment-bundle-version
+	[[ "$(INCREMENT_BUNDLE_VERSION)" == false ]] || $(MAKE) _increment-bundle-version
 
 	BUNDLE_PATH=$$($(MAKE) bundle-path)
 	CSV_PATH=$$($(MAKE) csv-path)
@@ -485,7 +485,7 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	mv $${BUNDLE_PATH}/manifests/$(ECLIPSE_CHE_PACKAGE_NAME).clusterserviceversion.yaml $${CSV_PATH}
 
 	# Rollback creation date if version is not incremented
-	if [[ "$(INCRMENT_BUNDLE_VERSION)" == false ]]; then
+	if [[ "$(INCREMENT_BUNDLE_VERSION)" == false ]]; then
 		sed -i "s/createdAt:.*$$/createdAt: \"$${NEXT_BUNDLE_CREATION_DATE}\"/" "$${CSV_PATH}"
 	fi
 

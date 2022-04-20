@@ -33,7 +33,7 @@ spec:
       clientConfig:
         caBundle: Cg==
         service:
-          name: webhook-service
+          name: che-operator-webhook-service
           namespace: eclipse-che
           path: /convert
       conversionReviewVersions:
@@ -1720,43 +1720,6 @@ rules:
   - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: leader-election-role
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - coordination.k8s.io
-  resources:
-  - leases
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
@@ -2432,19 +2395,6 @@ subjects:
   name: che-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: leader-election-rolebinding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: leader-election-role
-subjects:
-- kind: ServiceAccount
-  name: che-operator
-  namespace: system
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   labels:
@@ -2470,7 +2420,7 @@ metadata:
     app.kubernetes.io/instance: che
     app.kubernetes.io/name: che
     app.kubernetes.io/part-of: che.eclipse.org
-  name: webhook-service
+  name: che-operator-webhook-service
   namespace: eclipse-che
 spec:
   ports:
@@ -2633,17 +2583,17 @@ metadata:
   namespace: eclipse-che
 spec:
   dnsNames:
-  - webhook-service.eclipse-che.svc
-  - webhook-service.eclipse-che.svc.cluster.local
+  - che-operator-webhook-service.eclipse-che.svc
+  - che-operator-webhook-service.eclipse-che.svc.cluster.local
   issuerRef:
     kind: Issuer
-    name: selfsigned-issuer
+    name: che-operator-selfsigned-issuer
   secretName: che-operator-webhook-server-cert
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: selfsigned-issuer
+  name: che-operator-selfsigned-issuer
   namespace: eclipse-che
 spec:
   selfSigned: {}

@@ -13,7 +13,7 @@
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: selfsigned-issuer
+  name: che-operator-selfsigned-issuer
   namespace: eclipse-che
 spec:
   selfSigned: {}

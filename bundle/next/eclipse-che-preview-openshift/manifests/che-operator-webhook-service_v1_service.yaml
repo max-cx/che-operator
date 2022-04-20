@@ -19,7 +19,7 @@ metadata:
     app.kubernetes.io/instance: che
     app.kubernetes.io/name: che
     app.kubernetes.io/part-of: che.eclipse.org
-  name: webhook-service
+  name: che-operator-webhook-service
 spec:
   ports:
   - port: 443

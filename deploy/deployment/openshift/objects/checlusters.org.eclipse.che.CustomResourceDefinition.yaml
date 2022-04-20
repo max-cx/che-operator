@@ -28,7 +28,7 @@ spec:
       clientConfig:
         caBundle: Cg==
         service:
-          name: webhook-service
+          name: che-operator-webhook-service
           namespace: eclipse-che
           path: /convert
       conversionReviewVersions:

@@ -16,7 +16,7 @@
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
-  name: selfsigned-issuer
+  name: che-operator-selfsigned-issuer
   namespace: eclipse-che
 spec:
   selfSigned: {}
@@ -33,5 +33,5 @@ spec:
   - $(SERVICE_NAME).$(SERVICE_NAMESPACE).svc.cluster.local
   issuerRef:
     kind: Issuer
-    name: selfsigned-issuer
+    name: che-operator-selfsigned-issuer
   secretName: che-operator-webhook-server-cert # this secret will not be prefixed, since it's not managed by kustomize

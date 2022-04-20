@@ -23,7 +23,7 @@ spec:
       clientConfig:
         service:
           namespace: eclipse-che
-          name: webhook-service
+          name: che-operator-webhook-service
           path: /convert
         # caBundle will be filled on creation
         caBundle: Cg==

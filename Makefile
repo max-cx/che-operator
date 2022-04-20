@@ -273,14 +273,12 @@ gen-chectl-tmpl: ## Generate Eclipse Che k8s deployment resources used by chectl
 			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.ClusterRole.yaml $${dst}/$${TARGET_PLATFORM}/cluster_role.yaml
 			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.RoleBinding.yaml $${dst}/$${TARGET_PLATFORM}/role_binding.yaml
 			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.Role.yaml $${dst}/$${TARGET_PLATFORM}/role.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/leader-election-role.Role.yaml $${dst}/$${TARGET_PLATFORM}/leader-election-role.yaml
-			cp $${src}/$${TARGET_PLATFORM}/objects/leader-election-rolebinding.RoleBinding.yaml $${dst}/$${TARGET_PLATFORM}/leader-election-rolebinding.yaml
 
-			cp $${src}/$${TARGET_PLATFORM}/objects/webhook-service.Service.yaml $${dst}/$${TARGET_PLATFORM}/webhook-service.yaml
+			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-webhook-service.Service.yaml $${dst}/$${TARGET_PLATFORM}/webhook-service.yaml
 
 			if [[ $${TARGET_PLATFORM} == "kubernetes" ]]; then
 				cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-serving-cert.Certificate.yaml $${dst}/$${TARGET_PLATFORM}/serving-cert.yaml
-				cp $${src}/$${TARGET_PLATFORM}/objects/selfsigned-issuer.Issuer.yaml $${dst}/$${TARGET_PLATFORM}/selfsigned-issuer.yaml
+				cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-selfsigned-issuer.Issuer.yaml $${dst}/$${TARGET_PLATFORM}/selfsigned-issuer.yaml
 			fi
 		done
 	else

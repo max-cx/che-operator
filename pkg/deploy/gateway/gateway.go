@@ -463,7 +463,7 @@ func getContainersSpec(ctx *chetypes.DeployContext) []corev1.Container {
 		{
 			Name:            "gateway",
 			Image:           gatewayImage,
-			ImagePullPolicy: corev1.PullAlways,
+			ImagePullPolicy: corev1.PullIfNotPresent,
 			VolumeMounts:    getTraefikContainerVolumeMounts(ctx.CheCluster),
 			Resources: corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
@@ -479,7 +479,7 @@ func getContainersSpec(ctx *chetypes.DeployContext) []corev1.Container {
 		{
 			Name:            "configbump",
 			Image:           configSidecarImage,
-			ImagePullPolicy: corev1.PullAlways,
+			ImagePullPolicy: corev1.PullIfNotPresent,
 			Resources: corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
 					corev1.ResourceMemory: resource.MustParse("256Mi"),

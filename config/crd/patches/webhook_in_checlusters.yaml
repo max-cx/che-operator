@@ -25,3 +25,5 @@ spec:
           namespace: eclipse-che
           name: webhook-service
           path: /convert
+        # caBundle will be filled on creation
+        caBundle: Cg==

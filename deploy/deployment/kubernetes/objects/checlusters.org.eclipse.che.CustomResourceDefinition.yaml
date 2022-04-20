@@ -26,6 +26,7 @@ spec:
     strategy: Webhook
     webhook:
       clientConfig:
+        caBundle: Cg==
         service:
           name: webhook-service
           namespace: eclipse-che

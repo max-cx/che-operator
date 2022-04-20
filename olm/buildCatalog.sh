@@ -67,7 +67,7 @@ usage () {
   echo "Build and push custom catalog and bundle images."
   echo
 	echo "Usage:"
-	echo -e "\t$0 -i CATALOG_IMAGE -c CHANNEL [-o OPERATOR_IMAGE] [-t IMAGE_TOOL] [--force]"
+	echo -e "\t$0 -i CATALOG_IMAGE [-c CHANNEL] [-o OPERATOR_IMAGE] [-t IMAGE_TOOL] [--force]"
   echo
   echo "OPTIONS:"
   echo -e "\t-i,--catalog-image       Catalog image to build"
@@ -137,7 +137,6 @@ buildCatalogImage() {
 }
 
 init "$@"
-installOPM
 
 pushd "${ROOT_DIR}" || exit
 buildBundle

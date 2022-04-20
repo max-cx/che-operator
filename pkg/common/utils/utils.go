@@ -178,7 +178,7 @@ func ComputeHash256(data []byte) string {
 }
 
 func GetPullPolicyFromDockerImage(dockerImage string) string {
-	tag := "latest"
+	tag := ""
 	parts := strings.Split(dockerImage, ":")
 	if len(parts) > 1 {
 		tag = parts[1]

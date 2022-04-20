@@ -103,15 +103,20 @@ func CustomizeDeployment(deployment *appsv1.Deployment, customization *chev2.Dep
 		}
 
 		container.Image = utils.GetValue(customizationContainer.Image, container.Image)
-		container.ImagePullPolicy = corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(container.Image))
+		if customizationContainer.ImagePullPolicy != "" {
+			container.ImagePullPolicy = customizationContainer.ImagePullPolicy
+		} else {
+			container.ImagePullPolicy = corev1.PullPolicy(utils.GetPullPolicyFromDockerImage(container.Image))
+		}
+
 		container.Resources = corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
-				corev1.ResourceMemory: getQuantity(customizationContainer.Resources.Requests.Memory, container.Resources.Requests[corev1.ResourceRequestsMemory]),
-				corev1.ResourceCPU:    getQuantity(customizationContainer.Resources.Requests.Cpu, container.Resources.Requests[corev1.ResourceRequestsCPU]),
+				corev1.ResourceMemory: getQuantity(customizationContainer.Resources.Requests.Memory, container.Resources.Requests[corev1.ResourceMemory]),
+				corev1.ResourceCPU:    getQuantity(customizationContainer.Resources.Requests.Cpu, container.Resources.Requests[corev1.ResourceCPU]),
 			},
 			Limits: corev1.ResourceList{
-				corev1.ResourceMemory: getQuantity(customizationContainer.Resources.Limits.Memory, container.Resources.Requests[corev1.ResourceLimitsMemory]),
-				corev1.ResourceCPU:    getQuantity(customizationContainer.Resources.Limits.Cpu, container.Resources.Requests[corev1.ResourceLimitsCPU]),
+				corev1.ResourceMemory: getQuantity(customizationContainer.Resources.Limits.Memory, container.Resources.Limits[corev1.ResourceMemory]),
+				corev1.ResourceCPU:    getQuantity(customizationContainer.Resources.Limits.Cpu, container.Resources.Limits[corev1.ResourceCPU]),
 			},
 		}
 	}

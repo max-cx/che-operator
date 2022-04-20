@@ -236,7 +236,7 @@ gen-deployment: manifests download-kustomize ## Generate Eclipse Che k8s deploym
 		mkdir -p $${OBJECTS_DIR}
 
 		COMBINED_FILENAME=$${PLATFORM_DIR}/combined.yaml
-		$(KUSTOMIZE) build config/platforms/$${TARGET_PLATFORM} | cat > $${COMBINED_FILENAME} -
+		$(KUSTOMIZE) build config/profiles/$${TARGET_PLATFORM} | cat > $${COMBINED_FILENAME} -
 
 		# Split the giant files output by kustomize per-object
 		csplit -s -f "temp" --suppress-matched "$${COMBINED_FILENAME}" '/^---$$/' '{*}'
@@ -305,16 +305,34 @@ build: generate ## Build Eclipse Che operator binary
 	go build -o bin/manager main.go
 
 run: SHELL := /bin/bash
-run: generate genenerate-env download-devworkspace-resources setup-checluster ## Run Eclipse Che operator
+run: generate manifests download-kustomize genenerate-env download-devworkspace-resources  ## Run Eclipse Che operator
 	echo "[INFO] Running on $(PLATFORM)"
 	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
+
+	$(KUSTOMIZE) build config/profiles/$(PLATFORM) | $(K8S_CLI) apply -f -
+	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
+
+	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
+	$(MAKE) store_tls_cert
+	$(MAKE) create-checluster-cr
+
 	source $(BASH_ENV_FILE)
+
 	go run ./main.go
 
 debug: SHELL := /bin/bash
-debug: generate genenerate-env download-devworkspace-resources setup-checluster ## Run and debug Eclipse Che operator
+debug: generate manifests download-kustomize genenerate-env download-devworkspace-resources ## Run and debug Eclipse Che operator
 	echo "[INFO] Running on $(PLATFORM)"
 	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
+
+	$(KUSTOMIZE) build config/profiles/$(PLATFORM) | $(K8S_CLI) apply -f -
+	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
+
+	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
+	$(MAKE) store_tls_cert
+	$(MAKE) create-checluster-cr
+
+	source $(BASH_ENV_FILE)
 
 	# dlv has an issue with 'Ctrl-C' termination, that's why we're doing trick with detach.
 	dlv debug --listen=:2345 --headless=true --api-version=2 ./main.go -- &
@@ -360,6 +378,11 @@ vet: ## Run go vet against code.
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
 test: download-devworkspace-resources ## Run tests.
 	export MOCK_API=true; go test -mod=vendor ./... -coverprofile cover.out
+
+store_tls_cert:
+	mkdir -p /tmp/k8s-webhook-server/serving-certs/
+	$(K8S_CLI) get secret che-operator-webhook-server-cert -n $(ECLIPSE_CHE_NAMESPACE) -o json | jq -r '.data["tls.crt"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.crt
+	$(K8S_CLI) get secret che-operator-webhook-server-cert -n $(ECLIPSE_CHE_NAMESPACE) -o json | jq -r '.data["tls.key"]' | base64 -d > /tmp/k8s-webhook-server/serving-certs/tls.key
 
 ##@ Development utilities
 
@@ -439,21 +462,18 @@ install: manifests download-kustomize _kustomize-operator-image ## Install Eclip
 	echo "[INFO] Running on $(PLATFORM)"
 	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
 
-	$(KUSTOMIZE) build config/platforms/$(PLATFORM) | $(K8S_CLI) apply -f -
-	$(MAKE) create-checluster-cr
+	$(KUSTOMIZE) build config/profiles/$(PLATFORM) | $(K8S_CLI) apply -f -
 	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=${ECLIPSE_CHE_NAMESPACE}
+	$(MAKE) create-checluster-cr
 
 	# Printing logs
 	echo "[INFO] Waiting for Eclipse Che"
 	oc logs $$(oc get pods -o json -n ${ECLIPSE_CHE_NAMESPACE} | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name') -n ${ECLIPSE_CHE_NAMESPACE} --all-containers -f
 
 uninstall: ## Uninstall Eclipse Che operator
-	$(K8S_CLI) delete checluster eclipse-che -n ${ECLIPSE_CHE_NAMESPACE}
-	# Wait until operator delete its resources
-	sleep 20s
-
 	$(K8S_CLI) patch checluster eclipse-che -n ${ECLIPSE_CHE_NAMESPACE} --type json  -p='[{"op": "remove", "path": "/metadata/finalizers"}]'
-	$(KUSTOMIZE) build config/platforms/$(PLATFORM) | $(K8S_CLI) delete -f -
+	$(K8S_CLI) delete checluster eclipse-che -n ${ECLIPSE_CHE_NAMESPACE}
+	$(KUSTOMIZE) build config/profiles/$(PLATFORM) | $(K8S_CLI) delete -f -
 
 .PHONY: bundle
 bundle: SHELL := /bin/bash
@@ -471,7 +491,7 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	# Build default clusterserviceversion file
 	$(OPERATOR_SDK) generate kustomize manifests
 
-	$(KUSTOMIZE) build config/manifests | \
+	$(KUSTOMIZE) build config/profiles/openshift/olm | \
 	$(OPERATOR_SDK) generate bundle \
 	--quiet \
 	--overwrite \
@@ -611,15 +631,17 @@ create-namespace: ## Creates eclipse-che namespace
 create-checluster-crd: manifests download-kustomize ## Creates CheCluster Custom Resource Definition
 	$(KUSTOMIZE) build config/crd | $(K8S_CLI) apply -f -
 
+create-checluster-cr: SHELL := /bin/bash
 create-checluster-cr: ## Creates CheCluster Custom Resource V2
-	if [ "$$(oc get checluster eclipse-che -n $(ECLIPSE_CHE_NAMESPACE) || false )" ]; then
+	if [ "$$($(K8S_CLI) get checluster eclipse-che -n $(ECLIPSE_CHE_NAMESPACE) || false )" ]; then
 		echo "[INFO] CheCluster already exists."
 	else
 		CHECLUSTER_CR_2_APPLY=/tmp/checluster_cr.yaml
 		cp  $(CHECLUSTER_CR_PATH) $${CHECLUSTER_CR_2_APPLY}
 
 		# Update ingress.domain field with an actual value
-		if [ "$$(oc api-resources --api-group='route.openshift.io' 2>&1 | grep -o routes)" != "routes" ]; then
+		if [[ $(PLATFORM) == "kubernetes" ]]; then
+  			# kubectl does not have `whoami` command
 			CLUSTER_API_URL=$$(oc whoami --show-server=true) || true;
 			CLUSTER_DOMAIN=$$(echo $${CLUSTER_API_URL} | sed -E 's/https:\/\/(.*):.*/\1/g')
 			yq -riY  '.spec.ingress.domain = "'$${CLUSTER_DOMAIN}'.nip.io"' $${CHECLUSTER_CR_2_APPLY}

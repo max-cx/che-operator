@@ -16,6 +16,9 @@ import (
 	"os"
 	"reflect"
 
+	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/api/resource"
+
 	"github.com/google/go-cmp/cmp"
 
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
@@ -664,5 +667,164 @@ func TestSyncEnvVarDeploymentToCluster(t *testing.T) {
 	value := utils.GetEnv(actual.Spec.Template.Spec.Containers[0].Env, "test-name")
 	if value != "test-value" {
 		t.Fatalf("Failed to sync deployment")
+	}
+}
+
+func TestCustomizeDeploymentShouldNotUpdateResources(t *testing.T) {
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "test",
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("100Mi"),
+									corev1.ResourceCPU:    resource.MustParse("1"),
+								},
+								Limits: corev1.ResourceList{
+									corev1.ResourceMemory: resource.MustParse("200Mi"),
+									corev1.ResourceCPU:    resource.MustParse("2"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	customizationDeployment := &chev2.Deployment{
+		Containers: []chev2.Container{
+			{
+				Name: "test",
+			},
+		},
+	}
+
+	err := CustomizeDeployment(deployment, customizationDeployment, false)
+	assert.Nil(t, err)
+	assert.Equal(t, "1", deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Cpu().String())
+	assert.Equal(t, "100Mi", deployment.Spec.Template.Spec.Containers[0].Resources.Requests.Memory().String())
+	assert.Equal(t, "2", deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu().String())
+	assert.Equal(t, "200Mi", deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Memory().String())
+}
+
+func TestCustomizeDeploymentImagePullPolicy(t *testing.T) {
+	type testCase struct {
+		name                    string
+		initDeployment          *appsv1.Deployment
+		customizationDeployment *chev2.Deployment
+		expectedImagePullPolicy corev1.PullPolicy
+	}
+
+	testCases := []testCase{
+		{
+			name: "Should use ImagePullPolicy set explicitly",
+			initDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Name:            "test",
+									Image:           "test/test:test",
+									ImagePullPolicy: corev1.PullIfNotPresent,
+								},
+							},
+						},
+					},
+				},
+			},
+			customizationDeployment: &chev2.Deployment{
+				Containers: []chev2.Container{
+					{
+						Name:            "test",
+						ImagePullPolicy: corev1.PullNever,
+					},
+				},
+			},
+			expectedImagePullPolicy: corev1.PullNever,
+		},
+		{
+			name: "Should update ImagePullPolicy to Always for next tag",
+			initDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Name:            "test",
+									Image:           "test/test:test",
+									ImagePullPolicy: corev1.PullIfNotPresent,
+								},
+							},
+						},
+					},
+				},
+			},
+			customizationDeployment: &chev2.Deployment{
+				Containers: []chev2.Container{
+					{
+						Name:  "test",
+						Image: "test/test:next",
+					},
+				},
+			},
+			expectedImagePullPolicy: corev1.PullAlways,
+		},
+		{
+			name: "Should not update ImagePullPolicy",
+			initDeployment: &appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Name:            "test",
+									Image:           "test/test:v2.5.0",
+									ImagePullPolicy: corev1.PullIfNotPresent,
+								},
+							},
+						},
+					},
+				},
+			},
+			customizationDeployment: &chev2.Deployment{
+				Containers: []chev2.Container{
+					{
+						Name: "test",
+					},
+				},
+			},
+			expectedImagePullPolicy: corev1.PullIfNotPresent,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			logf.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
+
+			err := CustomizeDeployment(testCase.initDeployment, testCase.customizationDeployment, false)
+			assert.Nil(t, err)
+			assert.Equal(t, testCase.expectedImagePullPolicy, testCase.initDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy)
+		})
 	}
 }

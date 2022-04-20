@@ -55,8 +55,6 @@ Options:
 "
 }
 
-installOPM
-
 getLatestStableVersions
 
 INDEX_IMAGE="quay.io/eclipse/eclipse-che-openshift-opm-catalog:test"

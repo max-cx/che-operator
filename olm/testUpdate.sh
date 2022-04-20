@@ -43,7 +43,7 @@ usage () {
   echo "Deploy and update Eclipse Che from a custom catalog."
   echo
 	echo "Usage:"
-	echo -e "\t$0 -i CATALOG_IMAGE -c CHANNEL [-n NAMESPACE]"
+	echo -e "\t$0 -i CATALOG_IMAGE [-c CHANNEL] [-n NAMESPACE]"
   echo
   echo "OPTIONS:"
   echo -e "\t-i,--catalog-image       Catalog image"

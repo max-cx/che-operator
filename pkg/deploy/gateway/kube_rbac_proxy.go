@@ -51,7 +51,7 @@ func getKubeRbacProxyContainerSpec(instance *chev2.CheCluster) corev1.Container 
 	return corev1.Container{
 		Name:            "kube-rbac-proxy",
 		Image:           defaults.GetGatewayAuthorizationSidecarImage(instance),
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Args: []string{
 			"--insecure-listen-address=0.0.0.0:8089",
 			"--upstream=http://127.0.0.1:8090/ping",

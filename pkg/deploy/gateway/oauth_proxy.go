@@ -136,7 +136,7 @@ func getOauthProxyContainerSpec(ctx *chetypes.DeployContext) corev1.Container {
 	return corev1.Container{
 		Name:            "oauth-proxy",
 		Image:           defaults.GetGatewayAuthenticationSidecarImage(ctx.CheCluster),
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Args: []string{
 			"--config=/etc/oauth-proxy/oauth-proxy.cfg",
 		},

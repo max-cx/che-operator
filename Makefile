@@ -227,7 +227,7 @@ update-helmcharts: ## Update Helm Charts
 	echo "[INFO] HelmCharts updated $${HELM_DIR}"
 
 gen-deployment: SHELL := /bin/bash
-gen-deployment: manifests download-kustomize ## Generate Eclipse Che k8s deployment resources
+gen-deployment: manifests download-kustomize _kustomize-operator-image ## Generate Eclipse Che k8s deployment resources
 	rm -rf $(DEPLOYMENT_DIR)
 	for TARGET_PLATFORM in kubernetes openshift; do
 		PLATFORM_DIR=$(DEPLOYMENT_DIR)/$${TARGET_PLATFORM}

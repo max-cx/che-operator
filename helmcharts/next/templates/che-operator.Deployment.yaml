@@ -101,7 +101,7 @@ spec:
           value: "1"
         - name: ADD_COMPONENT_READINESS_INIT_CONTAINERS
           value: "false"
-        image: docker.io/abazko/operator:20758
+        image: quay.io/abazko/operator:20758
         imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 10

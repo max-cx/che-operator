@@ -23,8 +23,8 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.4.1
   labels:
     app.kubernetes.io/instance: che
-    app.kubernetes.io/managed-by: olm
     app.kubernetes.io/name: che
+    app.kubernetes.io/part-of: che.eclipse.org
   name: checlusters.org.eclipse.che
 spec:
   conversion:
@@ -2578,6 +2578,11 @@ spec:
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
+labels:
+  app.kubernetes.io/component: che-operator
+  app.kubernetes.io/instance: che
+  app.kubernetes.io/name: che
+  app.kubernetes.io/part-of: che.eclipse.org
 metadata:
   name: che-operator-serving-cert
   namespace: eclipse-che
@@ -2592,6 +2597,11 @@ spec:
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer
+labels:
+  app.kubernetes.io/component: che-operator
+  app.kubernetes.io/instance: che
+  app.kubernetes.io/name: che
+  app.kubernetes.io/part-of: che.eclipse.org
 metadata:
   name: che-operator-selfsigned-issuer
   namespace: eclipse-che

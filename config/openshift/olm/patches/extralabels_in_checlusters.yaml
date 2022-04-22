@@ -10,15 +10,10 @@
 #   Red Hat, Inc. - initial API and implementation
 #
 
-apiVersion: cert-manager.io/v1
-kind: Issuer
-labels:
-  app.kubernetes.io/component: che-operator
-  app.kubernetes.io/instance: che
-  app.kubernetes.io/name: che
-  app.kubernetes.io/part-of: che.eclipse.org
+# The following patch adds extra labels to CRD
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
 metadata:
-  name: che-operator-selfsigned-issuer
-  namespace: eclipse-che
-spec:
-  selfSigned: {}
+  labels:
+    app.kubernetes.io/managed-by: olm
+  name: checlusters.org.eclipse.che

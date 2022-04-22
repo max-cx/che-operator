@@ -12,6 +12,11 @@
 
 apiVersion: cert-manager.io/v1
 kind: Issuer
+labels:
+  app.kubernetes.io/component: che-operator
+  app.kubernetes.io/instance: che
+  app.kubernetes.io/name: che
+  app.kubernetes.io/part-of: che.eclipse.org
 metadata:
   name: che-operator-selfsigned-issuer
   namespace: eclipse-che

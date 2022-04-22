@@ -20,6 +20,9 @@ resources:
   - ../../samples
   - ../../scorecard
 
+patchesStrategicMerge:
+  - patches/extralabels_in_checlusters.yaml
+
 patchesJson6902:
   - target:
       group: apps

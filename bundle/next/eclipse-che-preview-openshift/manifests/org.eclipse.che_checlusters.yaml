@@ -20,6 +20,7 @@ metadata:
     app.kubernetes.io/instance: che
     app.kubernetes.io/managed-by: olm
     app.kubernetes.io/name: che
+    app.kubernetes.io/part-of: che.eclipse.org
   name: checlusters.org.eclipse.che
 spec:
   conversion:

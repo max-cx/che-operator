@@ -1273,7 +1273,8 @@ spec:
               description: Desired configuration of Eclipse Che installation.
               properties:
                 containerRegistry:
-                  description: Container registry configuration.
+                  description: Configuration of an alternative registry that stores
+                    Che images
                   properties:
                     hostname:
                       description: Optional hostname, or URL, to an alternate container
@@ -1290,81 +1291,8 @@ spec:
                         useful to install Eclipse Che in a restricted environment.
                       type: string
                   type: object
-                devWorkspace:
-                  description: DevWorkspace operator configuration
-                  properties:
-                    deployment:
-                      description: Deployment override options.
-                      properties:
-                        container:
-                          description: A single application container.
-                          items:
-                            description: Container custom settings.
-                            properties:
-                              image:
-                                description: Container image. Omit it or leave it
-                                  empty to use the default container image provided
-                                  by the Operator.
-                                type: string
-                              imagePullPolicy:
-                                description: Image pull policy. Default value is `Always`
-                                  for `nightly`, `next` or `latest` images, and `IfNotPresent`
-                                  in other cases.
-                                type: string
-                              name:
-                                description: Container name.
-                                type: string
-                              resources:
-                                description: Compute Resources required by this container.
-                                properties:
-                                  limits:
-                                    description: Limits describes the maximum amount
-                                      of compute resources allowed.
-                                    properties:
-                                      cpu:
-                                        description: CPU, in cores. (500m = .5 cores)
-                                        type: string
-                                      memory:
-                                        description: Memory, in bytes. (500Gi = 500GiB
-                                          = 500 * 1024 * 1024 * 1024)
-                                        type: string
-                                    type: object
-                                  request:
-                                    description: Requests describes the minimum amount
-                                      of compute resources required.
-                                    properties:
-                                      cpu:
-                                        description: CPU, in cores. (500m = .5 cores)
-                                        type: string
-                                      memory:
-                                        description: Memory, in bytes. (500Gi = 500GiB
-                                          = 500 * 1024 * 1024 * 1024)
-                                        type: string
-                                    type: object
-                                type: object
-                            type: object
-                          type: array
-                        securityContext:
-                          description: Security options the pod should run with.
-                          properties:
-                            fsGroup:
-                              description: A special supplemental group that applies
-                                to all containers in a pod. Default value is `1724`.
-                              format: int64
-                              type: integer
-                            runAsUser:
-                              description: The UID to run the entrypoint of the container
-                                process. Default value is `1724`.
-                              format: int64
-                              type: integer
-                          type: object
-                      type: object
-                    runningLimit:
-                      description: Maximum number of the running workspaces per user.
-                      type: string
-                  type: object
                 ingress:
-                  description: Ingress configuration.
+                  description: Che ingress hostname, authentication and TLS configuration
                   properties:
                     annotations:
                       additionalProperties:
@@ -1502,7 +1430,7 @@ spec:
                       type: string
                   type: object
                 serverComponents:
-                  description: Server components configuration.
+                  description: Che Server components configuration
                   properties:
                     cheServer:
                       description: General configuration settings related to the Che
@@ -1836,6 +1764,83 @@ spec:
                               type: string
                           type: object
                       type: object
+                    devWorkspace:
+                      description: DevWorkspace operator configuration
+                      properties:
+                        deployment:
+                          description: Deployment override options.
+                          properties:
+                            container:
+                              description: A single application container.
+                              items:
+                                description: Container custom settings.
+                                properties:
+                                  image:
+                                    description: Container image. Omit it or leave
+                                      it empty to use the default container image
+                                      provided by the Operator.
+                                    type: string
+                                  imagePullPolicy:
+                                    description: Image pull policy. Default value
+                                      is `Always` for `nightly`, `next` or `latest`
+                                      images, and `IfNotPresent` in other cases.
+                                    type: string
+                                  name:
+                                    description: Container name.
+                                    type: string
+                                  resources:
+                                    description: Compute Resources required by this
+                                      container.
+                                    properties:
+                                      limits:
+                                        description: Limits describes the maximum
+                                          amount of compute resources allowed.
+                                        properties:
+                                          cpu:
+                                            description: CPU, in cores. (500m = .5
+                                              cores)
+                                            type: string
+                                          memory:
+                                            description: Memory, in bytes. (500Gi
+                                              = 500GiB = 500 * 1024 * 1024 * 1024)
+                                            type: string
+                                        type: object
+                                      request:
+                                        description: Requests describes the minimum
+                                          amount of compute resources required.
+                                        properties:
+                                          cpu:
+                                            description: CPU, in cores. (500m = .5
+                                              cores)
+                                            type: string
+                                          memory:
+                                            description: Memory, in bytes. (500Gi
+                                              = 500GiB = 500 * 1024 * 1024 * 1024)
+                                            type: string
+                                        type: object
+                                    type: object
+                                type: object
+                              type: array
+                            securityContext:
+                              description: Security options the pod should run with.
+                              properties:
+                                fsGroup:
+                                  description: A special supplemental group that applies
+                                    to all containers in a pod. Default value is `1724`.
+                                  format: int64
+                                  type: integer
+                                runAsUser:
+                                  description: The UID to run the entrypoint of the
+                                    container process. Default value is `1724`.
+                                  format: int64
+                                  type: integer
+                              type: object
+                          type: object
+                        runningLimit:
+                          description: Maximum number of the running workspaces per
+                            user.
+                          type: string
+                      type: object
                     devfileRegistry:
                       description: Configuration settings related to the Devfile registry
                         used by the Che installation.
@@ -2090,7 +2095,7 @@ spec:
                       type: object
                   type: object
                 workspaces:
-                  description: Workspaces configuration.
+                  description: Development environment default configuration options
                   properties:
                     defaultNamespace:
                       description: if users namespaces are not pre-created this field

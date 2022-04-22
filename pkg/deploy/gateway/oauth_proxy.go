@@ -74,7 +74,7 @@ pass_access_token = true
 skip_provider_button = true
 %s
 `, GatewayServicePort,
-		ctx.CheCluster.GetCheHost(),
+		ctx.CheHost,
 		ctx.CheCluster.Spec.Ingress.Auth.OAuthClientName,
 		ctx.CheCluster.Spec.Ingress.Auth.OAuthSecret,
 		GatewayServiceName,
@@ -105,7 +105,7 @@ pass_authorization_header = true
 skip_provider_button = true
 %s
 `, GatewayServicePort,
-		ctx.CheCluster.GetCheHost(),
+		ctx.CheHost,
 		ctx.CheCluster.Spec.Ingress.Auth.IdentityProviderURL,
 		ctx.CheCluster.Spec.Ingress.Auth.OAuthClientName,
 		ctx.CheCluster.Spec.Ingress.Auth.OAuthSecret,

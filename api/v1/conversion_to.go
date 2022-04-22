@@ -52,10 +52,6 @@ func (src *CheCluster) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	if err := src.convertTo_DevWorkspace(dst); err != nil {
-		return err
-	}
-
 	if err := src.convertTo_Status(dst); err != nil {
 		return err
 	}
@@ -82,20 +78,6 @@ func (src *CheCluster) convertTo_Status(dst *chev2.CheCluster) error {
 	case "Available, Rolling Update in Progress":
 		dst.Status.ChePhase = chev2.RollingUpdate
 	}
-
-	return nil
-}
-
-func (src *CheCluster) convertTo_DevWorkspace(dst *chev2.CheCluster) error {
-	dst.Spec.DevWorkspace.Deployment = chev2.Deployment{
-		Containers: []chev2.Container{
-			{
-				Name:  constants.DevWorkspaceController,
-				Image: src.Spec.DevWorkspace.ControllerImage,
-			},
-		},
-	}
-	dst.Spec.DevWorkspace.RunningLimit = src.Spec.DevWorkspace.RunningLimit
 
 	return nil
 }
@@ -277,6 +259,24 @@ func (src *CheCluster) convertTo_ServerComponents(dst *chev2.CheCluster) error {
 	if err := src.convertTo_ServerComponents_ImagePuller(dst); err != nil {
 		return err
 	}
+
+	if err := src.convertTo_ServerComponents_DevWorkspace(dst); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (src *CheCluster) convertTo_ServerComponents_DevWorkspace(dst *chev2.CheCluster) error {
+	dst.Spec.ServerComponents.DevWorkspace.Deployment = chev2.Deployment{
+		Containers: []chev2.Container{
+			{
+				Name:  constants.DevWorkspaceController,
+				Image: src.Spec.DevWorkspace.ControllerImage,
+			},
+		},
+	}
+	dst.Spec.ServerComponents.DevWorkspace.RunningLimit = src.Spec.DevWorkspace.RunningLimit
 
 	return nil
 }

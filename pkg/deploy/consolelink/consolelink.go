@@ -77,7 +77,7 @@ func (c *ConsoleLinkReconciler) createConsoleLink(ctx *chetypes.DeployContext) (
 	}
 
 	// consolelink is for this specific instance of Eclipse Che
-	if strings.Index(consoleLink.Spec.Link.Href, ctx.CheCluster.GetCheHost()) != -1 {
+	if strings.Index(consoleLink.Spec.Link.Href, ctx.CheHost) != -1 {
 		err = deploy.AppendFinalizer(ctx, ConsoleLinkFinalizerName)
 		return err == nil, err
 	}
@@ -99,12 +99,12 @@ func (c *ConsoleLinkReconciler) getConsoleLinkSpec(ctx *chetypes.DeployContext) 
 		},
 		Spec: consolev1.ConsoleLinkSpec{
 			Link: consolev1.Link{
-				Href: ctx.CheCluster.Status.CheURL,
+				Href: "https://" + ctx.CheHost,
 				Text: defaults.GetConsoleLinkDisplayName()},
 			Location: consolev1.ApplicationMenu,
 			ApplicationMenu: &consolev1.ApplicationMenuSpec{
 				Section:  defaults.GetConsoleLinkSection(),
-				ImageURL: fmt.Sprintf("https://%s%s", ctx.CheCluster.GetCheHost(), defaults.GetConsoleLinkImage()),
+				ImageURL: fmt.Sprintf("https://%s%s", ctx.CheHost, defaults.GetConsoleLinkImage()),
 			},
 		},
 	}

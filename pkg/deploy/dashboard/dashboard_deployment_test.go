@@ -86,7 +86,7 @@ func TestDashboardDeploymentResources(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					ServerComponents: chev2.CheClusterServerComponents{
-						Dashboard: chev2.CheClusterSpecDashboard{
+						Dashboard: chev2.Dashboard{
 							Deployment: chev2.Deployment{
 								Containers: []chev2.Container{
 									{

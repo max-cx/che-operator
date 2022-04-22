@@ -189,6 +189,7 @@ func GetDeployContext(cheCluster *chev2.CheCluster, initObjs []runtime.Object) *
 			Scheme:           scheme,
 			DiscoveryClient:  fakeDiscovery,
 		},
-		Proxy: &chetypes.Proxy{},
+		Proxy:   &chetypes.Proxy{},
+		CheHost: "che-host",
 	}
 }

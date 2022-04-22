@@ -108,7 +108,7 @@ func TestConvertFrom(t *testing.T) {
 					Enable: true,
 				},
 				ExtraProperties: map[string]string{"a": "b", "c": "d"},
-				Database: chev2.CheClusterSpecDB{
+				Database: chev2.Database{
 					ExternalDb: true,
 					Deployment: chev2.Deployment{
 						Containers: []chev2.Container{
@@ -141,7 +141,7 @@ func TestConvertFrom(t *testing.T) {
 						StorageClass: "DatabaseStorageClass",
 					},
 				},
-				PluginRegistry: chev2.CheClusterSpecPluginRegistry{
+				PluginRegistry: chev2.PluginRegistry{
 					Deployment: chev2.Deployment{
 						Containers: []chev2.Container{
 							{
@@ -174,7 +174,7 @@ func TestConvertFrom(t *testing.T) {
 						},
 					},
 				},
-				DevfileRegistry: chev2.CheClusterSpecDevfileRegistry{
+				DevfileRegistry: chev2.DevfileRegistry{
 					Deployment: chev2.Deployment{
 						Containers: []chev2.Container{
 							{
@@ -204,7 +204,7 @@ func TestConvertFrom(t *testing.T) {
 						},
 					},
 				},
-				Dashboard: chev2.CheClusterSpecDashboard{
+				Dashboard: chev2.Dashboard{
 					Deployment: chev2.Deployment{
 						Containers: []chev2.Container{
 							{
@@ -229,7 +229,7 @@ func TestConvertFrom(t *testing.T) {
 					},
 					Warning: "DashboardWarning",
 				},
-				ImagePuller: chev2.CheClusterSpecImagePuller{
+				ImagePuller: chev2.ImagePuller{
 					Enable: true,
 				},
 				CheServer: chev2.CheServer{
@@ -264,6 +264,16 @@ func TestConvertFrom(t *testing.T) {
 						NonProxyHosts:         []string{"NonProxyHosts_1", "NonProxyHosts_2"},
 						CredentialsSecretName: "ProxyCredentialsSecretName",
 					},
+				},
+				DevWorkspace: chev2.DevWorkspace{
+					Deployment: chev2.Deployment{
+						Containers: []chev2.Container{
+							{
+								Image: "DevWorkspaceImage",
+							},
+						},
+					},
+					RunningLimit: "RunningLimit",
 				},
 			},
 			Ingress: chev2.CheClusterSpecIngress{
@@ -327,16 +337,6 @@ func TestConvertFrom(t *testing.T) {
 			ContainerRegistry: chev2.CheClusterContainerRegistry{
 				Hostname:     "AirGapContainerRegistryHostname",
 				Organization: "AirGapContainerRegistryOrganization",
-			},
-			DevWorkspace: chev2.CheClusterSpecDevWorkspace{
-				Deployment: chev2.Deployment{
-					Containers: []chev2.Container{
-						{
-							Image: "DevWorkspaceImage",
-						},
-					},
-				},
-				RunningLimit: "RunningLimit",
 			},
 		},
 		Status: chev2.CheClusterStatus{

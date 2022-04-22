@@ -408,7 +408,7 @@ func GetActualSubscription(ctx *chetypes.DeployContext) (*operatorsv1alpha1.Subs
 
 // Update the CheCluster ImagePuller spec if the default values are not set
 // returns the updated spec and an error during update
-func UpdateImagePullerSpecIfEmpty(ctx *chetypes.DeployContext) (chev2.CheClusterSpecImagePuller, error) {
+func UpdateImagePullerSpecIfEmpty(ctx *chetypes.DeployContext) (chev2.ImagePuller, error) {
 	if ctx.CheCluster.Spec.ServerComponents.ImagePuller.Spec.DeploymentName == "" {
 		ctx.CheCluster.Spec.ServerComponents.ImagePuller.Spec.DeploymentName = "kubernetes-image-puller"
 	}

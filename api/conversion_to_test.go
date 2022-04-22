@@ -365,8 +365,9 @@ func TestConvertTo(t *testing.T) {
 	assert.Equal(t, checlusterv2.Spec.ServerComponents.Database.Pvc.ClaimSize, "DatabasePvcClaimSize")
 	assert.Equal(t, checlusterv2.Spec.ServerComponents.Database.Pvc.StorageClass, "PostgresPVCStorageClassName")
 
-	assert.Equal(t, checlusterv2.Spec.DevWorkspace.Deployment.Containers[0].Image, "ControllerImage")
-	assert.Equal(t, checlusterv2.Spec.DevWorkspace.RunningLimit, "RunningLimit")
+	assert.Equal(t, checlusterv2.Spec.ServerComponents.DevWorkspace.Deployment.Containers[0].Image, "ControllerImage")
+	assert.Equal(t, checlusterv2.Spec.ServerComponents.DevWorkspace.RunningLimit, "RunningLimit")
+
 	assert.Equal(t, checlusterv2.Spec.ServerComponents.ImagePuller.Enable, true)
 	assert.Equal(t, checlusterv2.Spec.ServerComponents.Metrics.Enable, true)
 

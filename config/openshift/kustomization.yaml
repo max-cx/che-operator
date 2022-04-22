@@ -11,11 +11,11 @@
 #
 
 resources:
-  - ../../crd
-  - ../../rbac
-  - ../../manager
-  - ../../namespace
-  - ../../webhook
+  - ../crd
+  - ../rbac
+  - ../manager
+  - ../namespace
+  - ../webhook
 
 patchesStrategicMerge:
   - patches/cainjection_in_checlusters.yaml

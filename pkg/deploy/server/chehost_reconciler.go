@@ -36,12 +36,7 @@ func (s *CheHostReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.Re
 		return reconcile.Result{}, false, err
 	}
 
-	cheHost, done, err := s.exposeCheEndpoint(ctx)
-	if !done {
-		return reconcile.Result{}, false, err
-	}
-
-	done, err = s.updateCheURL(cheHost, ctx)
+	ctx.CheHost, done, err = s.exposeCheEndpoint(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
@@ -111,15 +106,4 @@ func (s CheHostReconciler) exposeCheEndpoint(ctx *chetypes.DeployContext) (strin
 	}
 
 	return route.Spec.Host, true, nil
-}
-
-func (s CheHostReconciler) updateCheURL(cheHost string, ctx *chetypes.DeployContext) (bool, error) {
-	var cheUrl = "https://" + cheHost
-	if ctx.CheCluster.Status.CheURL != cheUrl {
-		ctx.CheCluster.Status.CheURL = cheUrl
-		err := deploy.UpdateCheCRStatus(ctx, getComponentName(ctx)+" server URL", cheUrl)
-		return err == nil, err
-	}
-
-	return true, nil
 }

@@ -57,7 +57,7 @@ func (d *DashboardReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 	}
 
 	// Expose dashboard service with route or ingress
-	_, done, err = expose.ExposeWithHostPath(ctx, d.getComponentName(ctx), ctx.CheCluster.GetCheHost(),
+	_, done, err = expose.ExposeWithHostPath(ctx, d.getComponentName(ctx), ctx.CheHost,
 		exposePath,
 		d.createGatewayConfig(ctx),
 	)

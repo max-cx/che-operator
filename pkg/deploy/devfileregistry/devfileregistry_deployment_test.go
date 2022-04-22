@@ -66,7 +66,7 @@ func TestGetDevfileRegistryDeploymentSpec(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					ServerComponents: chev2.CheClusterServerComponents{
-						DevfileRegistry: chev2.CheClusterSpecDevfileRegistry{
+						DevfileRegistry: chev2.DevfileRegistry{
 							Deployment: chev2.Deployment{
 								Containers: []chev2.Container{
 									{

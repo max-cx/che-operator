@@ -216,8 +216,6 @@ update-helmcharts: ## Update Helm Charts
 		rm -rf $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 	else
 		yq -riY '.spec.ingress.tlsSecretName = "che-tls"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-		yq -riY '.metadata.namespace = $(ECLIPSE_CHE_NAMESPACE)' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
-
 		yq -riY '.spec.ingress.domain = "{{ .Values.ingress.domain }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 		yq -riY '.spec.ingress.auth.oAuthSecret = "{{ .Values.ingress.auth.oAuthSecret }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
 		yq -riY '.spec.ingress.auth.oAuthClientName = "{{ .Values.ingress.auth.oAuthClientName }}"' $${HELMCHARTS_TEMPLATES}/org_v2_checluster.yaml
@@ -236,7 +234,7 @@ gen-deployment: manifests download-kustomize _kustomize-operator-image ## Genera
 		mkdir -p $${OBJECTS_DIR}
 
 		COMBINED_FILENAME=$${PLATFORM_DIR}/combined.yaml
-		$(KUSTOMIZE) build config/profiles/$${TARGET_PLATFORM} | cat > $${COMBINED_FILENAME} -
+		$(KUSTOMIZE) build config/$${TARGET_PLATFORM} | cat > $${COMBINED_FILENAME} -
 
 		# Split the giant files output by kustomize per-object
 		csplit -s -f "temp" --suppress-matched "$${COMBINED_FILENAME}" '/^---$$/' '{*}'
@@ -307,7 +305,7 @@ run: generate manifests download-kustomize genenerate-env download-devworkspace-
 	echo "[INFO] Running on $(PLATFORM)"
 	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
 
-	$(KUSTOMIZE) build config/profiles/$(PLATFORM) | $(K8S_CLI) apply -f -
+	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
 	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
 
 	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
@@ -323,7 +321,7 @@ debug: generate manifests download-kustomize genenerate-env download-devworkspac
 	echo "[INFO] Running on $(PLATFORM)"
 	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
 
-	$(KUSTOMIZE) build config/profiles/$(PLATFORM) | $(K8S_CLI) apply -f -
+	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
 	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=$(ECLIPSE_CHE_NAMESPACE)
 
 	$(K8S_CLI) scale deploy che-operator -n $(ECLIPSE_CHE_NAMESPACE) --replicas=0
@@ -496,7 +494,7 @@ install: manifests download-kustomize _kustomize-operator-image ## Install Eclip
 	echo "[INFO] Running on $(PLATFORM)"
 	[[ $(PLATFORM) == "kubernetes" ]] && $(MAKE) install-certmgr
 
-	$(KUSTOMIZE) build config/profiles/$(PLATFORM) | $(K8S_CLI) apply -f -
+	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) apply -f -
 	$(MAKE) wait-pod-running COMPONENT=che-operator NAMESPACE=${ECLIPSE_CHE_NAMESPACE}
 	$(MAKE) create-checluster-cr
 
@@ -507,7 +505,7 @@ install: manifests download-kustomize _kustomize-operator-image ## Install Eclip
 uninstall: ## Uninstall Eclipse Che
 	$(K8S_CLI) patch checluster eclipse-che -n ${ECLIPSE_CHE_NAMESPACE} --type json  -p='[{"op": "remove", "path": "/metadata/finalizers"}]'
 	$(K8S_CLI) delete checluster eclipse-che -n ${ECLIPSE_CHE_NAMESPACE}
-	$(KUSTOMIZE) build config/profiles/$(PLATFORM) | $(K8S_CLI) delete -f -
+	$(KUSTOMIZE) build config/$(PLATFORM) | $(K8S_CLI) delete -f -
 
 .PHONY: bundle
 bundle: SHELL := /bin/bash
@@ -525,7 +523,7 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	# Build default clusterserviceversion file
 	$(OPERATOR_SDK) generate kustomize manifests
 
-	$(KUSTOMIZE) build config/profiles/openshift/olm | \
+	$(KUSTOMIZE) build config/openshift/olm | \
 	$(OPERATOR_SDK) generate bundle \
 	--quiet \
 	--overwrite \

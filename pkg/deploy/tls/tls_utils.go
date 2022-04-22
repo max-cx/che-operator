@@ -363,8 +363,8 @@ func K8sHandleCheTLSSecrets(ctx *chetypes.DeployContext) (reconcile.Result, erro
 		}
 
 		domains := ctx.CheCluster.Spec.Ingress.Domain + ",*." + ctx.CheCluster.Spec.Ingress.Domain
-		if ctx.CheCluster.GetCheHost() != "" && !strings.Contains(ctx.CheCluster.GetCheHost(), ctx.CheCluster.Spec.Ingress.Domain) {
-			domains += "," + ctx.CheCluster.GetCheHost()
+		if ctx.CheHost != "" && !strings.Contains(ctx.CheHost, ctx.CheCluster.Spec.Ingress.Domain) {
+			domains += "," + ctx.CheHost
 		}
 
 		labels := ""

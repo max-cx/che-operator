@@ -73,21 +73,18 @@ spec:
         name: ""
         version: v1
       specDescriptors:
-      - description: Container registry configuration.
-        displayName: Container registry
-        path: containerRegistry
-      - description: DevWorkspace operator configuration
-        displayName: Dev Workspace operator
-        path: devWorkspace
-      - description: Ingress configuration.
-        displayName: Ingress
-        path: ingress
-      - description: Server components configuration.
-        displayName: Server components
-        path: serverComponents
-      - description: Workspaces configuration.
+      - description: Development environment default configuration options
         displayName: Workspaces
         path: workspaces
+      - description: Che Server components configuration
+        displayName: Server components
+        path: serverComponents
+      - description: Che ingress hostname, authentication and TLS configuration
+        displayName: Ingress
+        path: ingress
+      - description: Configuration of an alternative registry that stores Che images
+        displayName: Container registry
+        path: containerRegistry
       statusDescriptors:
       - description: Specifies the phase in which the Che deployment currently is.
         displayName: ChePhase

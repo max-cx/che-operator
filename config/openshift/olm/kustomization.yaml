@@ -11,14 +11,14 @@
 #
 
 resources:
-  - ../../../manifests
-  - ../../../crd
-  - ../../../rbac
-  - ../../../manager
-  - ../../../namespace
-  - ../../../webhook
-  - ../../../samples
-  - ../../../scorecard
+  - ../../manifests
+  - ../../crd
+  - ../../rbac
+  - ../../manager
+  - ../../namespace
+  - ../../webhook
+  - ../../samples
+  - ../../scorecard
 
 patchesJson6902:
   - target:

@@ -151,10 +151,10 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 			CheCluster: &chev2.CheCluster{
 				Spec: chev2.CheClusterSpec{
 					ServerComponents: chev2.CheClusterServerComponents{
-						PluginRegistry: chev2.CheClusterSpecPluginRegistry{
+						PluginRegistry: chev2.PluginRegistry{
 							DisableInternalRegistry: true,
 						},
-						DevfileRegistry: chev2.CheClusterSpecDevfileRegistry{
+						DevfileRegistry: chev2.DevfileRegistry{
 							DisableInternalRegistry: true,
 						}}},
 			},
@@ -172,10 +172,10 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 			CheCluster: &chev2.CheCluster{
 				Spec: chev2.CheClusterSpec{
 					ServerComponents: chev2.CheClusterServerComponents{
-						PluginRegistry: chev2.CheClusterSpecPluginRegistry{
+						PluginRegistry: chev2.PluginRegistry{
 							DisableInternalRegistry: true,
 						},
-						DevfileRegistry: chev2.CheClusterSpecDevfileRegistry{
+						DevfileRegistry: chev2.DevfileRegistry{
 							DisableInternalRegistry: false,
 						}}},
 			},
@@ -193,10 +193,10 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 			CheCluster: &chev2.CheCluster{
 				Spec: chev2.CheClusterSpec{
 					ServerComponents: chev2.CheClusterServerComponents{
-						PluginRegistry: chev2.CheClusterSpecPluginRegistry{
+						PluginRegistry: chev2.PluginRegistry{
 							DisableInternalRegistry: false,
 						},
-						DevfileRegistry: chev2.CheClusterSpecDevfileRegistry{
+						DevfileRegistry: chev2.DevfileRegistry{
 							DisableInternalRegistry: true,
 						}}},
 			},
@@ -214,10 +214,10 @@ func TestOauthProxyConfigUnauthorizedPaths(t *testing.T) {
 			CheCluster: &chev2.CheCluster{
 				Spec: chev2.CheClusterSpec{
 					ServerComponents: chev2.CheClusterServerComponents{
-						PluginRegistry: chev2.CheClusterSpecPluginRegistry{
+						PluginRegistry: chev2.PluginRegistry{
 							DisableInternalRegistry: false,
 						},
-						DevfileRegistry: chev2.CheClusterSpecDevfileRegistry{
+						DevfileRegistry: chev2.DevfileRegistry{
 							DisableInternalRegistry: false,
 						}}},
 			},

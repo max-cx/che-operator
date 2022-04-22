@@ -72,7 +72,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					ServerComponents: chev2.CheClusterServerComponents{
-						DevfileRegistry: chev2.CheClusterSpecDevfileRegistry{
+						DevfileRegistry: chev2.DevfileRegistry{
 							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
 								{Url: "https://devfile-registry.external.2"},
 							},
@@ -94,7 +94,7 @@ func TestShouldSetUpCorrectlyDevfileRegistryURL(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					ServerComponents: chev2.CheClusterServerComponents{
-						DevfileRegistry: chev2.CheClusterSpecDevfileRegistry{
+						DevfileRegistry: chev2.DevfileRegistry{
 							DisableInternalRegistry: true,
 							ExternalDevfileRegistries: []chev2.ExternalDevfileRegistry{
 								{Url: "https://devfile-registry.external.2"},

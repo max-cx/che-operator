@@ -177,8 +177,8 @@ func syncDwDeployment(deployContext *chetypes.DeployContext) (bool, error) {
 	}
 
 	devworkspaceControllerImage := defaults.GetDevworkspaceControllerImage(deployContext.CheCluster)
-	if len(deployContext.CheCluster.Spec.DevWorkspace.Deployment.Containers) != 0 {
-		devworkspaceControllerImage = utils.GetValue(deployContext.CheCluster.Spec.DevWorkspace.Deployment.Containers[0].Image, devworkspaceControllerImage)
+	if len(deployContext.CheCluster.Spec.ServerComponents.DevWorkspace.Deployment.Containers) != 0 {
+		devworkspaceControllerImage = utils.GetValue(deployContext.CheCluster.Spec.ServerComponents.DevWorkspace.Deployment.Containers[0].Image, devworkspaceControllerImage)
 	}
 
 	devWorkspaceController := deployment.Spec.Template.Spec.Containers[0]

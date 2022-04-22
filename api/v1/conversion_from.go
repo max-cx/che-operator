@@ -280,10 +280,10 @@ func (dst *CheCluster) convertFrom_Database(src *chev2.CheCluster) error {
 }
 
 func (dst *CheCluster) convertFrom_DevWorkspace(src *chev2.CheCluster) error {
-	if len(src.Spec.DevWorkspace.Deployment.Containers) != 0 {
-		dst.Spec.DevWorkspace.ControllerImage = src.Spec.DevWorkspace.Deployment.Containers[0].Image
+	if len(src.Spec.ServerComponents.DevWorkspace.Deployment.Containers) != 0 {
+		dst.Spec.DevWorkspace.ControllerImage = src.Spec.ServerComponents.DevWorkspace.Deployment.Containers[0].Image
 	}
-	dst.Spec.DevWorkspace.RunningLimit = src.Spec.DevWorkspace.RunningLimit
+	dst.Spec.DevWorkspace.RunningLimit = src.Spec.ServerComponents.DevWorkspace.RunningLimit
 	dst.Spec.DevWorkspace.Enable = true
 
 	return nil

@@ -126,5 +126,4 @@ func TestCheHostReconciler(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: getComponentName(ctx), Namespace: "eclipse-che"}, &routev1.Route{}))
 	assert.True(t, test.IsObjectExists(ctx.ClusterAPI.Client, types.NamespacedName{Name: deploy.CheServiceName, Namespace: "eclipse-che"}, &corev1.Service{}))
-	assert.NotEmpty(t, cheCluster.Status.CheURL)
 }

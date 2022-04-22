@@ -11,12 +11,12 @@
 #
 
 resources:
-  - ../../crd
-  - ../../rbac
-  - ../../manager
-  - ../../namespace
-  - ../../webhook
-  - ../../certmanager
+  - ../crd
+  - ../rbac
+  - ../manager
+  - ../namespace
+  - ../webhook
+  - ../certmanager
 
 # Kubernetes platform specific patches
 patchesStrategicMerge:

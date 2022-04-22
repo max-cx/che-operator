@@ -30,26 +30,26 @@ import (
 // +k8s:openapi-gen=true
 // Desired configuration of Eclipse Che installation.
 type CheClusterSpec struct {
-	// DevWorkspace operator configuration
+	// Development environment default configuration options
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Dev Workspace operator"
-	DevWorkspace CheClusterSpecDevWorkspace `json:"devWorkspace"`
-	// Workspaces configuration.
-	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Workspaces"
 	Workspaces CheClusterSpecWorkspaces `json:"workspaces"`
-	// Server components configuration.
+	// Che Server components configuration
 	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Server components"
 	ServerComponents CheClusterServerComponents `json:"serverComponents"`
-	// Container registry configuration.
+	// Che ingress hostname, authentication and TLS configuration
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Container registry"
-	ContainerRegistry CheClusterContainerRegistry `json:"containerRegistry"`
-	// Ingress configuration.
-	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ingress"
 	Ingress CheClusterSpecIngress `json:"ingress,omitempty"`
+	// Configuration of an alternative registry that stores Che images
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Container registry"
+	ContainerRegistry CheClusterContainerRegistry `json:"containerRegistry"`
 }
 
 // +k8s:openapi-gen=true
@@ -82,7 +82,7 @@ type CheServer struct {
 
 // Configuration settings related to the Dashaboard used by the Che installation.
 // +k8s:openapi-gen=true
-type CheClusterSpecDashboard struct {
+type Dashboard struct {
 	// Deployment override options.
 	// +optional
 	Deployment Deployment `json:"deployment,omitempty"`
@@ -93,7 +93,7 @@ type CheClusterSpecDashboard struct {
 
 // Configuration settings related to the Plugin Registry used by the Che installation.
 // +k8s:openapi-gen=true
-type CheClusterSpecPluginRegistry struct {
+type PluginRegistry struct {
 	// Deployment override options.
 	// +optional
 	Deployment Deployment `json:"deployment,omitempty"`
@@ -109,7 +109,7 @@ type CheClusterSpecPluginRegistry struct {
 
 // Configuration settings related to the Devfile Registry used by the Che installation.
 // +k8s:openapi-gen=true
-type CheClusterSpecDevfileRegistry struct {
+type DevfileRegistry struct {
 	// Deployment override options.
 	// +optional
 	Deployment Deployment `json:"deployment,omitempty"`
@@ -125,7 +125,7 @@ type CheClusterSpecDevfileRegistry struct {
 
 // Configuration settings related to the database used by the Che installation.
 // +k8s:openapi-gen=true
-type CheClusterSpecDB struct {
+type Database struct {
 	// Instructs the Operator on whether to deploy a dedicated database.
 	// By default, a dedicated PostgreSQL database is deployed as part of the Che installation. When `externalDb` is `true`, no dedicated database will be deployed by the
 	// Operator and you will need to provide connection details to the external DB you are about to use. See also all the fields starting with: `chePostgres`.
@@ -169,7 +169,7 @@ type ServerMetrics struct {
 // Configuration settings for installation and configuration of the Kubernetes Image Puller
 // See https://github.com/che-incubator/kubernetes-image-puller-operator
 // +k8s:openapi-gen=true
-type CheClusterSpecImagePuller struct {
+type ImagePuller struct {
 	// Install and configure the Community Supported Kubernetes Image Puller Operator. When set to `true` and no spec is provided,
 	// it will create a default KubernetesImagePuller object to be managed by the Operator.
 	// When set to `false`, the KubernetesImagePuller object will be deleted, and the Operator will be uninstalled,
@@ -187,7 +187,7 @@ type CheClusterSpecImagePuller struct {
 // Settings for installation and configuration of the DevWorkspace operator
 // See https://github.com/devfile/devworkspace-operator
 // +k8s:openapi-gen=true
-type CheClusterSpecDevWorkspace struct {
+type DevWorkspace struct {
 	// Deployment override options.
 	// +optional
 	Deployment Deployment `json:"deployment,omitempty"`
@@ -199,24 +199,27 @@ type CheClusterSpecDevWorkspace struct {
 // Server components configuration
 // +k8s:openapi-gen=true
 type CheClusterServerComponents struct {
+	// DevWorkspace operator configuration
+	// +optional
+	DevWorkspace DevWorkspace `json:"devWorkspace"`
 	// General configuration settings related to the Che server
 	// +optional
 	CheServer CheServer `json:"cheServer"`
 	// Configuration settings related to the Plugin registry used by the Che installation.
 	// +optional
-	PluginRegistry CheClusterSpecPluginRegistry `json:"pluginRegistry"`
+	PluginRegistry PluginRegistry `json:"pluginRegistry"`
 	// Configuration settings related to the Devfile registry used by the Che installation.
 	// +optional
-	DevfileRegistry CheClusterSpecDevfileRegistry `json:"devfileRegistry"`
-	// Configuration settings related to the Dashboard sed by the Che installation.
-	// +optional
-	Dashboard CheClusterSpecDashboard `json:"dashboard"`
+	DevfileRegistry DevfileRegistry `json:"devfileRegistry"`
 	// Configuration settings related to the database used by the Che installation.
 	// +optional
-	Database CheClusterSpecDB `json:"database"`
+	Database Database `json:"database"`
+	// Configuration settings related to the Dashboard sed by the Che installation.
+	// +optional
+	Dashboard Dashboard `json:"dashboard"`
 	// Kubernetes Image Puller configuration
 	// +optional
-	ImagePuller CheClusterSpecImagePuller `json:"imagePuller"`
+	ImagePuller ImagePuller `json:"imagePuller"`
 	// Map of additional environment variables that will be applied in the generated `che` ConfigMap to be used by the Che server,
 	// in addition to the values already generated from other fields of the `CheCluster` custom resource (CR).
 	// When `extraProperties` contains a property that would be normally generated in `che` ConfigMap from other CR fields,

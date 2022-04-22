@@ -48,12 +48,17 @@ func (s *CheServerReconciler) Reconcile(ctx *chetypes.DeployContext) (reconcile.
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = s.syncChePhase(ctx)
+	done, err = s.syncActiveChePhase(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
 
-	done, err = s.updateCheVersion(ctx)
+	done, err = s.syncCheVersion(ctx)
+	if !done {
+		return reconcile.Result{}, false, err
+	}
+
+	done, err = s.syncCheURL(ctx)
 	if !done {
 		return reconcile.Result{}, false, err
 	}
@@ -74,7 +79,7 @@ func (s *CheServerReconciler) syncCheConfigMap(ctx *chetypes.DeployContext) (boo
 	return deploy.SyncConfigMapDataToCluster(ctx, CheConfigMapName, data, getComponentName(ctx))
 }
 
-func (s *CheServerReconciler) syncChePhase(ctx *chetypes.DeployContext) (bool, error) {
+func (s *CheServerReconciler) syncActiveChePhase(ctx *chetypes.DeployContext) (bool, error) {
 	cheDeployment := &appsv1.Deployment{}
 	exists, err := deploy.GetNamespacedObject(ctx, getComponentName(ctx), cheDeployment)
 	if err != nil {
@@ -86,23 +91,16 @@ func (s *CheServerReconciler) syncChePhase(ctx *chetypes.DeployContext) (bool, e
 			if ctx.CheCluster.Status.ChePhase != chev2.ClusterPhaseInactive {
 				ctx.CheCluster.Status.ChePhase = chev2.ClusterPhaseInactive
 				err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.ClusterPhaseInactive)
-				return err == nil, err
+				return false, err
 			}
-		} else if cheDeployment.Status.Replicas != 1 {
+		} else if cheDeployment.Status.Replicas > 1 {
 			if ctx.CheCluster.Status.ChePhase != chev2.RollingUpdate {
 				ctx.CheCluster.Status.ChePhase = chev2.RollingUpdate
 				err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.RollingUpdate)
-				return err == nil, err
+				return false, err
 			}
 		} else {
 			if ctx.CheCluster.Status.ChePhase != chev2.ClusterPhaseActive {
-				cheFlavor := defaults.GetCheFlavor()
-				name := "Eclipse Che"
-				if cheFlavor == "devspaces" {
-					name = "Red Hat OpenShift Dev Spaces"
-				}
-
-				logrus.Infof(name+" is now available at: %s", ctx.CheCluster.Status.CheURL)
 				ctx.CheCluster.Status.ChePhase = chev2.ClusterPhaseActive
 				err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.ClusterPhaseActive)
 				return err == nil, err
@@ -111,7 +109,7 @@ func (s *CheServerReconciler) syncChePhase(ctx *chetypes.DeployContext) (bool, e
 	} else {
 		ctx.CheCluster.Status.ChePhase = chev2.ClusterPhaseInactive
 		err := deploy.UpdateCheCRStatus(ctx, "Phase", chev2.ClusterPhaseInactive)
-		return err == nil, err
+		return false, err
 	}
 
 	return true, nil
@@ -126,12 +124,25 @@ func (s *CheServerReconciler) syncDeployment(ctx *chetypes.DeployContext) (bool,
 	return deploy.SyncDeploymentSpecToCluster(ctx, spec, deploy.DefaultDeploymentDiffOpts)
 }
 
-func (s CheServerReconciler) updateCheVersion(ctx *chetypes.DeployContext) (bool, error) {
+func (s CheServerReconciler) syncCheVersion(ctx *chetypes.DeployContext) (bool, error) {
 	cheVersion := defaults.GetCheVersion()
 	if ctx.CheCluster.Status.CheVersion != cheVersion {
 		ctx.CheCluster.Status.CheVersion = cheVersion
 		err := deploy.UpdateCheCRStatus(ctx, "version", cheVersion)
 		return err == nil, err
 	}
+	return true, nil
+}
+func (s CheServerReconciler) syncCheURL(ctx *chetypes.DeployContext) (bool, error) {
+	var cheUrl = "https://" + ctx.CheHost
+	if ctx.CheCluster.Status.CheURL != cheUrl {
+		product := map[bool]string{true: "Red Hat OpenShift Dev Spaces", false: "Eclipse Che"}[defaults.GetCheFlavor() == "devspaces"]
+		logrus.Infof("%s is now available at: %s", product, cheUrl)
+
+		ctx.CheCluster.Status.CheURL = cheUrl
+		err := deploy.UpdateCheCRStatus(ctx, getComponentName(ctx)+" server URL", cheUrl)
+		return err == nil, err
+	}
+
 	return true, nil
 }

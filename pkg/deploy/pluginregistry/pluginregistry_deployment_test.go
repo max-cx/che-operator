@@ -62,7 +62,7 @@ func TestGetPluginRegistryDeploymentSpec(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					ServerComponents: chev2.CheClusterServerComponents{
-						PluginRegistry: chev2.CheClusterSpecPluginRegistry{
+						PluginRegistry: chev2.PluginRegistry{
 							Deployment: chev2.Deployment{
 								Containers: []chev2.Container{
 									{

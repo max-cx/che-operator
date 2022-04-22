@@ -74,7 +74,7 @@ func TestDeploymentSpec(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					ServerComponents: chev2.CheClusterServerComponents{
-						Database: chev2.CheClusterSpecDB{
+						Database: chev2.Database{
 							Deployment: chev2.Deployment{
 								Containers: []chev2.Container{
 									{
@@ -196,7 +196,7 @@ func TestGetPostgresImage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					ServerComponents: chev2.CheClusterServerComponents{
-						Database: chev2.CheClusterSpecDB{
+						Database: chev2.Database{
 							Deployment: chev2.Deployment{
 								Containers: []chev2.Container{
 									chev2.Container{
@@ -232,7 +232,7 @@ func TestGetPostgresImage(t *testing.T) {
 				},
 				Spec: chev2.CheClusterSpec{
 					ServerComponents: chev2.CheClusterServerComponents{
-						Database: chev2.CheClusterSpecDB{},
+						Database: chev2.Database{},
 					},
 				},
 			},

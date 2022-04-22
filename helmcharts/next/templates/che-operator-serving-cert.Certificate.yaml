@@ -22,8 +22,8 @@ metadata:
   namespace: eclipse-che
 spec:
   dnsNames:
-  - che-operator-webhook-service.eclipse-che.svc
-  - che-operator-webhook-service.eclipse-che.svc.cluster.local
+  - che-operator-service.eclipse-che.svc
+  - che-operator-service.eclipse-che.svc.cluster.local
   issuerRef:
     kind: Issuer
     name: che-operator-selfsigned-issuer

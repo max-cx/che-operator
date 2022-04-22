@@ -33,7 +33,7 @@ spec:
       clientConfig:
         caBundle: Cg==
         service:
-          name: che-operator-webhook-service
+          name: che-operator-service
           namespace: eclipse-che
           path: /convert
       conversionReviewVersions:
@@ -2420,7 +2420,7 @@ metadata:
     app.kubernetes.io/instance: che
     app.kubernetes.io/name: che
     app.kubernetes.io/part-of: che.eclipse.org
-  name: che-operator-webhook-service
+  name: che-operator-service
   namespace: eclipse-che
 spec:
   ports:
@@ -2588,8 +2588,8 @@ metadata:
   namespace: eclipse-che
 spec:
   dnsNames:
-  - che-operator-webhook-service.eclipse-che.svc
-  - che-operator-webhook-service.eclipse-che.svc.cluster.local
+  - che-operator-service.eclipse-che.svc
+  - che-operator-service.eclipse-che.svc.cluster.local
   issuerRef:
     kind: Issuer
     name: che-operator-selfsigned-issuer

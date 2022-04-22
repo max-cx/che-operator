@@ -272,7 +272,7 @@ gen-chectl-tmpl: ## Generate Eclipse Che k8s deployment resources used by chectl
 			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.RoleBinding.yaml $${dst}/$${TARGET_PLATFORM}/role_binding.yaml
 			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator.Role.yaml $${dst}/$${TARGET_PLATFORM}/role.yaml
 
-			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-webhook-service.Service.yaml $${dst}/$${TARGET_PLATFORM}/webhook-service.yaml
+			cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-service.Service.yaml $${dst}/$${TARGET_PLATFORM}/webhook-service.yaml
 
 			if [[ $${TARGET_PLATFORM} == "kubernetes" ]]; then
 				cp $${src}/$${TARGET_PLATFORM}/objects/che-operator-serving-cert.Certificate.yaml $${dst}/$${TARGET_PLATFORM}/serving-cert.yaml
@@ -532,6 +532,9 @@ bundle: generate manifests download-kustomize download-operator-sdk ## Generate 
 	--output-dir $${BUNDLE_PATH} \
 	--channels $(CHANNEL) \
 	--default-channel $(CHANNEL)
+
+	# Remove service from the bundle since OLM create that itself
+	rm $${BUNDLE_PATH}/manifests/che-operator-service_v1_service.yaml
 
 	# Rename clusterserviceversion file
 	mv $${BUNDLE_PATH}/manifests/$(ECLIPSE_CHE_PACKAGE_NAME).clusterserviceversion.yaml $${CSV_PATH}
